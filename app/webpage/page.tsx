@@ -1,0 +1,417 @@
+"use client";
+
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store/store";
+import { clearUser } from "../../store/userSlice";
+import { setEmployees } from "../../store/employeesSlice";
+import EmployeeList, { Employee } from "./components/EmployeeList";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import AddLeadPage from "./leads/page";
+
+
+
+// Tabs
+type TabKey = "home" | "dashboard" | "leads" | "addLead" | "Prospect" | "Account" | "Remainder";
+
+export default function HelloPage(): JSX.Element {
+  const dispatch = useDispatch();
+  const router = useRouter();
+
+  const user = useSelector(
+    (s: RootState) => (s as any).user ?? (s as any).auth?.user ?? null
+  );
+  const employeesFromStore = useSelector(
+    (s: RootState) => (s as any).employees ?? []
+  );
+
+  const [activeTab, setActiveTab] = useState<TabKey>("home");
+  const [loading, setLoading] = useState(false);
+  const [employeesLocal, setEmployeesLocal] = useState<Employee[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // sidebar collapsed => icon-only mode
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const tabIcons: Record<TabKey, React.ReactNode> = {
+    home: "",
+    dashboard: (<Image src="/dashboard1.png" alt="Dashboard" width={20} height={20} />),
+    leads: (<Image src="/group.png" alt="Dashboard" width={20} height={20} />),
+    Prospect: (<Image src="/prospect.png" alt="Dashboard" width={20} height={20} />),
+    Account: (<Image src="/account.png" alt="Dashboard" width={20} height={20} />),
+    Remainder: (<Image src="/bell.png" alt="Dashboard" width={20} height={20} />),
+    addLead: ""
+  };
+
+
+  // fetch leads
+  const fetchList = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const res = await fetch("/api/employees");
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+      const data: Employee[] = await res.json();
+      dispatch(setEmployees(data));
+
+      setEmployeesLocal(data);
+    } catch (err: any) {
+      console.error("Error fetching employees:", err);
+      setError(err?.message ?? "Unknown error");
+      setEmployeesLocal([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  async function handleTab(tab: TabKey) {
+    setActiveTab(tab);
+    if (tab === "leads") {
+      await fetchList();
+    }
+  }
+
+  function handleLogout() {
+    dispatch(clearUser());
+  }
+
+  function toggleSidebar() {
+    setSidebarCollapsed((prev) => !prev);
+  }
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "home":
+        return (
+          <>
+            <h1 style={{ margin: 0, textAlign: "center", fontWeight: 300 }}>
+              Welcome{user?.name ? `, ${user.name}` : ""}{" "}
+            </h1>
+          </>
+        );
+
+      case "dashboard":
+        return (
+          <>
+            <h2>Dashboard</h2>
+            <p>This is the dashboard area.</p>
+          </>
+        );
+
+      case "leads":
+        return (
+          <>
+
+            <EmployeeList
+              employees={employeesLocal ?? employeesFromStore}
+              loading={loading}
+              error={error}
+              onAddLead={() => setActiveTab("addLead")}
+            />
+          </>
+        );
+
+      case "addLead":
+        return <AddLeadPage onBack={() => setActiveTab("leads")} />;
+
+
+
+      case "Prospect":
+        return (
+          <>
+            <EmployeeList
+              employees={employeesLocal ?? employeesFromStore}
+              loading={loading}
+              error={error}
+              onAddLead={() => setActiveTab("addLead")}
+            />
+          </>
+        );
+
+      case "Account":
+        return (
+          <>
+            <h2>Account</h2>
+            <p>Reports area</p>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto",
+        position: "relative",
+        background: "#f3f4f6",
+      }}
+    >
+      {/* LEFT SIDEBAR   "#fff"*/}
+      <aside
+        style={{
+          width: sidebarCollapsed ? 64 : 260,
+          minWidth: sidebarCollapsed ? 64 : 260,
+          height: "100vh",
+          borderRight: "1px solid #e6e6e6",
+          paddingTop: sidebarCollapsed ? 16 : 18,
+          paddingBottom: 18,
+          paddingLeft: sidebarCollapsed ? 8 : 18,
+          paddingRight: sidebarCollapsed ? 8 : 18,
+          background: "#fff",
+          overflowY: "auto",
+          overflowX: "hidden",
+          transition: "width 0.25s ease, padding 0.25s ease",
+          boxSizing: "border-box",
+        }}
+      >
+
+        {/* LOGO — visible ONLY when NOT collapsed */}
+        {!sidebarCollapsed && (
+          <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+                marginBottom: 8,
+                boxSizing: "border-box",
+              }}
+            >
+              <div
+                style={{
+                  width: 220,
+                  background: "#fff",
+                  padding: 14,
+                  borderRadius: 6,
+                  boxShadow: "0 1px 0 rgba(0,0,0,0.05)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                <Image
+                  src="/logo1.png"
+                  alt="Logo"
+                  width={260}
+                  height={120}
+                  style={{
+                    width: "90%",
+                    height: "75%",
+                    objectFit: "contain",
+                    display: "block",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Divider under logo */}
+            <div
+              style={{
+                height: 0,
+                background: "#efefef",
+                margin: "10px 0 14px 0",
+              }}
+            />
+          </>
+        )}
+
+        {/* NAVIGATION MENU */}
+        <nav>
+          <ul
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              marginTop: sidebarCollapsed ? 70 : 20,
+            }}
+          >
+            {(["dashboard", "leads", "Prospect", "Account", "Remainder",] as TabKey[]).map(
+              (tab) => {
+                const label = tab[0].toUpperCase() + tab.slice(1);
+                const active = activeTab === tab;
+                const icon = tabIcons[tab];
+
+                return (
+                  <li key={tab} style={{ paddingRight: 8 }}>
+                    <button
+                      onClick={() => handleTab(tab)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: sidebarCollapsed ? 0 : 12,
+                        textAlign: "left",
+                        padding: sidebarCollapsed ? "10px 6px" : "10px 14px",
+                        borderRadius: 8,
+                        border: "none",
+                        boxSizing: "border-box",
+                        cursor: "pointer",
+                        background: active ? "#1e53d7" : "#f7f7f7",
+                        color: active ? "#fff" : "#111",
+                        minHeight: 44,
+                        justifyContent: sidebarCollapsed ? "center" : "flex-start",
+                        transition: "background 0.15s ease, color 0.15s ease",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          width: 22,
+                          height: 22,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {icon}
+                      </span>
+
+                      {/* Label hidden when collapsed */}
+                      {!sidebarCollapsed && (
+                        <span
+                          style={{
+                            flex: 1,
+                            fontSize: 14,
+                            fontWeight: 500,
+                            color: active ? "#fff" : "#222",
+                          }}
+                        >
+                          {label}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              }
+            )}
+          </ul>
+        </nav>
+
+        {/* Optional footer */}
+        {!sidebarCollapsed && (
+          <div style={{ marginTop: 20, fontSize: 13, color: "#666" }}>
+            {/* Add user info here later */}
+          </div>
+        )}
+
+      </aside>
+
+
+      {/* RIGHT SIDE */}
+      <main
+        style={{
+          flex: 1,
+          padding: 0,
+          background: "#fff",
+          transition: "all 0.3s ease",
+        }}
+      >
+        {/* BLUE TOP BAR */}
+        <div
+          style={{
+            width: "100%",
+            height: 60,
+            backgroundColor: "#3a77e3",
+
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            color: "white",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            position: "relative",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* Semi-circular toggle OUTSIDE the bar (left) */}
+          <div
+            onClick={toggleSidebar}
+            style={{
+              position: "absolute",
+              left: "-31px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: 50,
+              height: 60,
+              borderRadius: "999px 0 0 990px",
+              background: "#f56c00",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 0 4px rgba(0,0,0,0.25)",
+              flexShrink: 0,
+              zIndex: 1000,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 15,
+                lineHeight: 1,
+                color: "white",
+                userSelect: "none",
+              }}
+            >
+              {sidebarCollapsed ? ">>" : "<<"}
+            </span>
+          </div>
+
+          {/* Title */}
+          <div
+            style={{
+              fontWeight: 600,
+              fontSize: 30,
+              flex: 1,
+              paddingLeft: 30,
+              letterSpacing: 1,
+            }}
+          >
+            ACARsh
+          </div>
+
+
+          {/* Logout Button */}
+          <button
+            onClick={() => {
+              dispatch(clearUser());
+              localStorage.removeItem("user");
+              router.push("/");
+            }}
+            style={{
+              padding: "5px 10px",
+              borderRadius: 6,
+              border: "none",
+              backgroundColor: "#f56c00",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 13,
+              marginRight: 20
+            }}
+          >
+            Logout
+          </button>
+        </div>
+
+        {/* CONTENT BODY */}
+        <div
+          style={{
+            padding: 20,
+          }}
+        >
+          {renderContent()}
+        </div>
+      </main>
+    </div>
+  );
+}
