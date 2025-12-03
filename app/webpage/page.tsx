@@ -132,8 +132,12 @@ export default function HelloPage(): JSX.Element {
       case "Account":
         return (
           <>
-            <h2>Account</h2>
-            <p>Reports area</p>
+            <EmployeeList
+              employees={employeesLocal ?? employeesFromStore}
+              loading={loading}
+              error={error}
+              onAddLead={() => setActiveTab("addLead")}
+            />
           </>
         );
 

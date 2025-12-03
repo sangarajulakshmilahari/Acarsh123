@@ -1,4 +1,4 @@
-import React, {useState,useMemo} from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 export type Contact = {
@@ -11,16 +11,13 @@ export type Contact = {
 
 export type Employee = {
     LeadId: number | string;
-
     CompanyName: string;
     CompanyLocation: string;
     LeadSource: string;
     LeadDate: string | number | Date;
     LeadNotes: string | null;
-
     StatusName: string | null;
     OwnerName: string | null;
-
     Contacts: Contact[];
 };
 
@@ -35,122 +32,119 @@ type Props = {
 export default function EmployeeList({ employees, loading, error, onDelete, onAddLead }: Props) {
     const router = useRouter();
     const [query, setQuery] = useState("")
-     
-  // Normalize employees prop to a plain array (support wrapper shapes like { data: [...] })
-  const employeesList: Employee[] = Array.isArray(employees)
-    ? employees
-    : employees && (employees as any).data && Array.isArray((employees as any).data)
-    ? (employees as any).data
-    : [];
- 
-  const filteredEmployees = useMemo(() => {
-    const q = (query || "").toLowerCase();
-    if (!q) return employeesList;
-    return employeesList.filter((emp) => {
-      const haystack = [
-        emp.CompanyName,
-        emp.CompanyLocation,
-        emp.LeadSource,
-        emp.StatusName,
-        emp.OwnerName,
-        emp.LeadNotes,
-        ...(emp.Contacts || []).flatMap((c) => [
-          c.ContactName,
-          c.ContactRoleName,
-          c.ContactTitle,
-          c.ContactEmail,
-          c.ContactPhone,
-        ]),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
- 
-      return haystack.includes(q);
-    });
-  }, [employeesList, query]);
- 
-  if (loading) return <div>Loading leads...</div>;
-  if (error) return <div style={{ color: "red" }}>Error: {error}</div>;
-  if (employeesList.length === 0) return <div>No leads found.</div>;
- 
-  return (
-    <div
-      style={{
-        marginTop: 16,
-        background: "#ffffff",
-        borderRadius: 4,
-        boxShadow: "0 0 4px rgba(0,0,0,0.08)",
-        overflow: "hidden",
-      }}
-    >
-      {/* --------------------------------------------- */}
-      {/* ---------- Top bar: Add Lead + Search ---------- */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          padding: "16px",
-        }}
-      >
-        {/* Add Lead Button */}
-        <button
-          onClick={onAddLead}
-          style={{
-            background: "#2563eb",
-            color: "white",
-            padding: "7px 12px",
-            border: "none",
-            borderRadius: 6,
-            fontSize: 15,
-            cursor: "pointer",
-          }}
-        >
-          Add Lead
-        </button>
- 
-        {/* Search Bar */}
-        <div style={{ position: "relative", display: "inline-block" }}>
-          {/* Search Icon Image */}
-          <Image
-            src="/search.png"
-            alt="search"
-            width={18}
-            height={18}
-            style={{
-              position: "absolute",
-              left: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          />
- 
-          {/* Search Input */}
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search leads by company, contact, email, source, status, owner..."
-            style={{
-              width: "350px",
-              marginRight: "300px",
-              padding: "13px 40px",
-              paddingLeft: "45px",
-              borderRadius: 1,
-              border: "1px solid #d1d5db",
-              fontSize: 14,
-              outline: "none",
-            }}
-          />
-        </div>
-      </div>
- 
+    const employeesList: Employee[] = Array.isArray(employees)
+        ? employees
+        : employees && (employees as any).data && Array.isArray((employees as any).data)
+            ? (employees as any).data
+            : [];
 
-   
-    
+    const filteredEmployees = useMemo(() => {
+        const q = (query || "").toLowerCase();
+        if (!q) return employeesList;
+        return employeesList.filter((emp) => {
+            const haystack = [
+                emp.CompanyName,
+                emp.CompanyLocation,
+                emp.LeadSource,
+                emp.StatusName,
+                emp.OwnerName,
+                emp.LeadNotes,
+                ...(emp.Contacts || []).flatMap((c) => [
+                    c.ContactName,
+                    c.ContactRoleName,
+                    c.ContactTitle,
+                    c.ContactEmail,
+                    c.ContactPhone,
+                ]),
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            return haystack.includes(q);
+        });
+    }, [employeesList, query]);
+
+    if (loading) return <div>Loading leads...</div>;
+    if (error) return <div style={{ color: "red" }}>Error: {error}</div>;
+    if (employeesList.length === 0) return <div>No leads found.</div>;
+
+    return (
+        <div
+            style={{
+                marginTop: 16,
+                background: "#ffffff",
+                borderRadius: 4,
+                boxShadow: "0 0 4px rgba(0,0,0,0.08)",
+                overflow: "hidden",
+            }}
+        >
+            {/* ---------- Top bar: Add Lead + Search ---------- */}
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 20,
+                    padding: "16px",
+                }}
+            >
+                {/* Add Lead Button */}
+                <button
+                    onClick={onAddLead}
+                    style={{
+                        background: "#2563eb",
+                        color: "white",
+                        padding: "7px 12px",
+                        border: "none",
+                        borderRadius: 6,
+                        fontSize: 15,
+                        cursor: "pointer",
+                    }}
+                >
+                    Add Lead
+                </button>
+
+                {/* Search Bar */}
+                <div style={{ position: "relative", display: "inline-block" }}>
+                    {/* Search Icon Image */}
+                    <Image
+                        src="/search.png"
+                        alt="search"
+                        width={18}
+                        height={18}
+                        style={{
+                            position: "absolute",
+                            left: 12,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            pointerEvents: "none",
+                        }}
+                    />
+
+                    {/* Search Input */}
+                    <input
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Search leads by company, contact, email, source, status, owner..."
+                        style={{
+                            width: "350px",
+                            marginRight: "300px",
+                            padding: "13px 40px",
+                            paddingLeft: "45px",
+                            borderRadius: 1,
+                            border: "1px solid #d1d5db",
+                            fontSize: 14,
+                            outline: "none",
+                        }}
+                    />
+                </div>
+            </div>
+
+
+
+
 
 
             {/* --------------------------------------------- */}
@@ -162,6 +156,7 @@ export default function EmployeeList({ employees, loading, error, onDelete, onAd
                         borderSpacing: 0,
                         minWidth: 900,
                         fontFamily: "Segoe UI, system-ui, -apple-system, sans-serif",
+                        fontSize: 10
                     }}
                 >
                     <thead>
@@ -201,7 +196,7 @@ export default function EmployeeList({ employees, loading, error, onDelete, onAd
                                                     gap: 4,
                                                 }}
                                             >
-                                                <span><Image src="/location.png" alt="location" width= {18} height={18} /></span>
+                                                <span><Image src="/location.png" alt="location" width={18} height={18} /></span>
                                                 <span>{emp.CompanyLocation}</span>
                                             </div>
                                         )}
@@ -264,7 +259,7 @@ export default function EmployeeList({ employees, loading, error, onDelete, onAd
                                                             }}
                                                         >
                                                             <span><Image src="/email.png" alt="email" width={12} height={12} />
- </span>
+                                                            </span>
                                                             <a
                                                                 href={`mailto:${c.ContactEmail}`}
                                                                 style={{
@@ -291,7 +286,7 @@ export default function EmployeeList({ employees, loading, error, onDelete, onAd
                                                             }}
                                                         >
                                                             <span><Image src="/call.png" alt="call" width={12} height={12} />
- </span>
+                                                            </span>
                                                             <a
                                                                 href={`tel:${c.ContactPhone}`}
                                                                 style={{
@@ -312,7 +307,7 @@ export default function EmployeeList({ employees, loading, error, onDelete, onAd
 
                                     {/* Source */}
                                     <td style={tdStyle}>
-                                        <div style={{ fontSize: 13 }}>{emp.LeadSource || "—"}</div>
+                                        <div style={{ fontSize: "10px" }}>{emp.LeadSource || "—"}</div>
                                     </td>
 
                                     {/* Status */}
@@ -323,7 +318,7 @@ export default function EmployeeList({ employees, loading, error, onDelete, onAd
                                                     display: "inline-block",
                                                     padding: "2px 8px",
                                                     borderRadius: 12,
-                                                    fontSize: 11,
+                                                    fontSize: "10px",
                                                     fontWeight: 600,
                                                     backgroundColor: "#e4f2ff",
                                                     color: "#1f6fdc",
@@ -363,25 +358,25 @@ export default function EmployeeList({ employees, loading, error, onDelete, onAd
 
                                     {/* Actions */}
                                     <td style={{ ...tdStyle, textAlign: "center", verticalAlign: "middle" }}>
-                    <button
-                      onClick={() => onDelete && onDelete(emp.LeadId)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: "100%",
-                        height: "100%",
-                      }}
-                    >
-                      <Image src="/delete.png" alt="delete" width={18} height={18} />
+                                        <button
+                                            onClick={() => onDelete && onDelete(emp.LeadId)}
+                                            style={{
+                                                background: "transparent",
+                                                border: "none",
+                                                cursor: "pointer",
+                                                padding: 0,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                width: "100%",
+                                                height: "100%",
+                                            }}
+                                        >
+                                            <Image src="/delete.png" alt="delete" width={18} height={18} />
 
-                    </button>
-                  </td>
- 
+                                        </button>
+                                    </td>
+
                                 </tr>
                             );
                         })}
@@ -403,8 +398,8 @@ const thStyle: React.CSSProperties = {
     textAlign: "left",
     padding: "8px 12px",
     borderBottom: "1px solid #3b414d",
-     borderRight: "0.5px solid #bebbbbff",
-  borderLeft: "0.5px solid #bebbbbff",
+    borderRight: "0.0px solid #bebbbbff",
+    borderLeft: "0.5px solid #bebbbbff",
     fontWeight: 600,
     fontSize: 12,
     textTransform: "uppercase",
@@ -418,13 +413,13 @@ const thStyle: React.CSSProperties = {
 const tdStyle: React.CSSProperties = {
     padding: "10px 12px",
     borderBottom: "1px solid #e1e4ed",
-     borderRight: "0.5px solid #bebbbbff",
-  borderLeft: "0.5px solid #bebbbbff",
- 
+    borderRight: "0px solid #bebbbbff",
+    borderLeft: "0.5px solid #bebbbbff",
+
     verticalAlign: "top",
-    fontSize: 13,
 };
 
 const trStyle: React.CSSProperties = {
     transition: "background-color 0.15s ease",
+    fontSize: 0,
 };

@@ -10,13 +10,13 @@ exports.id = "vendor-chunks/process";
 exports.ids = ["vendor-chunks/process"];
 exports.modules = {
 
-/***/ "(rsc)/../node_modules/process/index.js":
-/*!****************************************!*\
-  !*** ../node_modules/process/index.js ***!
-  \****************************************/
+/***/ "(rsc)/./node_modules/process/index.js":
+/*!***************************************!*\
+  !*** ./node_modules/process/index.js ***!
+  \***************************************/
 /***/ ((module) => {
 
-eval("// for now just expose the builtin process global from node.js\nmodule.exports = global.process;\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiKHJzYykvLi4vbm9kZV9tb2R1bGVzL3Byb2Nlc3MvaW5kZXguanMiLCJtYXBwaW5ncyI6IkFBQUE7QUFDQSIsInNvdXJjZXMiOlsid2VicGFjazovL25leHRqcy10eXBlc2NyaXB0LXJlZHV4LXNhbXBsZS8uLi9ub2RlX21vZHVsZXMvcHJvY2Vzcy9pbmRleC5qcz8yYWJhIl0sInNvdXJjZXNDb250ZW50IjpbIi8vIGZvciBub3cganVzdCBleHBvc2UgdGhlIGJ1aWx0aW4gcHJvY2VzcyBnbG9iYWwgZnJvbSBub2RlLmpzXG5tb2R1bGUuZXhwb3J0cyA9IGdsb2JhbC5wcm9jZXNzO1xuIl0sIm5hbWVzIjpbXSwic291cmNlUm9vdCI6IiJ9\n//# sourceURL=webpack-internal:///(rsc)/../node_modules/process/index.js\n");
+eval("// for now just expose the builtin process global from node.js\nmodule.exports = global.process;\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiKHJzYykvLi9ub2RlX21vZHVsZXMvcHJvY2Vzcy9pbmRleC5qcyIsIm1hcHBpbmdzIjoiQUFBQTtBQUNBIiwic291cmNlcyI6WyJ3ZWJwYWNrOi8vbmV4dGpzLXR5cGVzY3JpcHQtcmVkdXgtc2FtcGxlLy4vbm9kZV9tb2R1bGVzL3Byb2Nlc3MvaW5kZXguanM/MDY2NCJdLCJzb3VyY2VzQ29udGVudCI6WyIvLyBmb3Igbm93IGp1c3QgZXhwb3NlIHRoZSBidWlsdGluIHByb2Nlc3MgZ2xvYmFsIGZyb20gbm9kZS5qc1xubW9kdWxlLmV4cG9ydHMgPSBnbG9iYWwucHJvY2VzcztcbiJdLCJuYW1lcyI6W10sInNvdXJjZVJvb3QiOiIifQ==\n//# sourceURL=webpack-internal:///(rsc)/./node_modules/process/index.js\n");
 
 /***/ })
 
