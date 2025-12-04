@@ -13,7 +13,7 @@ import AddLeadPage from "./leads/page";
 
 
 // Tabs
-type TabKey = "home" | "dashboard" | "leads" | "addLead" | "Prospect" | "Account" | "Remainder";
+type TabKey = "home" | "dashboard" | "leads" | "addLead" | "Prospect" | "Account" | "Reminder";
 
 export default function HelloPage(): JSX.Element {
   const dispatch = useDispatch();
@@ -40,7 +40,7 @@ export default function HelloPage(): JSX.Element {
     leads: (<Image src="/group.png" alt="Dashboard" width={20} height={20} />),
     Prospect: (<Image src="/prospect.png" alt="Dashboard" width={20} height={20} />),
     Account: (<Image src="/account.png" alt="Dashboard" width={20} height={20} />),
-    Remainder: (<Image src="/bell.png" alt="Dashboard" width={20} height={20} />),
+    Reminder: (<Image src="/bell.png" alt="Dashboard" width={20} height={20} />),
     addLead: ""
   };
 
@@ -236,7 +236,7 @@ export default function HelloPage(): JSX.Element {
               marginTop: sidebarCollapsed ? 70 : 20,
             }}
           >
-            {(["dashboard", "leads", "Prospect", "Account", "Remainder",] as TabKey[]).map(
+            {(["dashboard", "leads", "Prospect", "Account", "Reminder",] as TabKey[]).map(
               (tab) => {
                 const label = tab[0].toUpperCase() + tab.slice(1);
                 const active = activeTab === tab;

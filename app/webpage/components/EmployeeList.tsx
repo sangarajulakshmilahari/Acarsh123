@@ -78,7 +78,7 @@ export default function EmployeeList({
     });
   }, [employeesList, query]);
 
-//   if (loading) return <div>Loading leads...</div>;
+  //   if (loading) return <div>Loading leads...</div>;
   if (error) return <div style={{ color: "red" }}>Error: {error}</div>;
   if (employeesList.length === 0) return <div>No leads found.</div>;
 
@@ -114,7 +114,7 @@ export default function EmployeeList({
             borderRadius: 6,
             fontSize: 13,
             cursor: "pointer",
-            fontWeight: "bold"
+            fontWeight: "bold",
           }}
         >
           Add Lead
@@ -157,7 +157,6 @@ export default function EmployeeList({
         </div>
       </div>
 
-      {/* --------------------------------------------- */}
       <div style={{ maxHeight: 480, overflowY: "auto", overflowX: "auto" }}>
         <table
           style={{
@@ -191,7 +190,13 @@ export default function EmployeeList({
                 <tr key={emp.LeadId as React.Key} style={rowStyle}>
                   {/* Company Column */}
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div style={{ fontWeight: "bold", fontSize: 9.52,fontFamily:"sans-serif" }}>
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: 9.52,
+                        fontFamily: "sans-serif",
+                      }}
+                    >
                       {emp.CompanyName || "—"}
                     </div>
                     {emp.CompanyLocation && (
@@ -219,28 +224,39 @@ export default function EmployeeList({
                   </td>
 
                   {/* Contacts Column */}
-                  <td style={{ ...tdStyle, verticalAlign: "middle" }}>
+                  <td style={tdStyle}>
                     {emp.Contacts && emp.Contacts.length > 0 ? (
                       emp.Contacts.map((c, index) => (
                         <div
                           key={index}
                           style={{
-                            marginBottom: 8,
-                            paddingBottom: 1,
+                            paddingTop: index === 0 ? 0 : 6,
+                            paddingBottom:
+                              index === emp.Contacts.length - 1 ? 0 : 6,
                             borderBottom:
                               index !== emp.Contacts.length - 1
-                                ? "1px dashed #e1e4ed"
+                                ? "1px solid #d7d7d7"
                                 : "none",
+                            margin: 0,
+                            display: "block",
                           }}
                         >
                           {/* Name + Role */}
-                          <div style={{ fontWeight: "bold", fontSize: "9.52px" }}>
+                          <div
+                            onDoubleClick={() => router.push(`/webpage/leads/Leaddetails?leadId=${emp.LeadId}`)}
+                            title="Double click to open details"
+                            style={{
+                              fontWeight: "600",
+                              fontSize: "10px",
+                              cursor: "pointer",
+                            }}
+                          >
                             {c.ContactName || "—"}
                             {c.ContactRoleName && (
                               <span
                                 style={{
                                   fontSize: 10,
-                                  color: "#666",
+                                  color: "#8a8a8a",
                                   marginLeft: 4,
                                 }}
                               >
@@ -254,8 +270,9 @@ export default function EmployeeList({
                             <div
                               style={{
                                 fontSize: "9.52px",
-                                color: "#555",
-                                marginTop: 2,
+                                fontWeight: "normal",
+                                color: "#000",
+                                marginTop: 0,
                               }}
                             >
                               {c.ContactTitle}
@@ -266,28 +283,27 @@ export default function EmployeeList({
                           {c.ContactEmail && (
                             <div
                               style={{
-                                fontSize: "9.52px",
+                                fontSize: "10px",
                                 color: "#444",
-                                marginTop: 4,
+                                marginTop: 0,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 4,
+                                whiteSpace: "nowrap",
                               }}
                             >
-                              <span>
-                                <Image
-                                  src="/email.png"
-                                  alt="email"
-                                  width={11}
-                                  height={11}
-                                />
-                              </span>
+                              <Image
+                                src="/email.png"
+                                alt="email"
+                                width={11}
+                                height={11}
+                              />
+
                               <a
                                 href={`mailto:${c.ContactEmail}`}
                                 style={{
-                                  color: "#0b5fff",
+                                  color: "#7a7a7aff",
                                   textDecoration: "none",
-                                  wordBreak: "break-all",
                                 }}
                               >
                                 {c.ContactEmail}
@@ -301,7 +317,7 @@ export default function EmployeeList({
                               style={{
                                 fontSize: 9.52,
                                 color: "#444",
-                                marginTop: 2,
+                                marginTop: 0,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 4,
@@ -335,11 +351,13 @@ export default function EmployeeList({
 
                   {/* Source */}
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div style={{ fontSize: 9.52 }}>{emp.LeadSource || "—"}</div>
+                    <div style={{ fontSize: 9.52 }}>
+                      {emp.LeadSource || "—"}
+                    </div>
                   </td>
 
                   {/* Status */}
-                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
+                  <td style={{ ...tdStyle, verticalAlign: "middle" }}>
                     {emp.StatusName ? (
                       <span
                         style={{
@@ -432,10 +450,10 @@ function formatDate(value: string | number | Date) {
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "8px 12px",
-//   borderBottom: "1px solid #3b414d",
-//   borderRight: "0.0px solid #e4e9f0",
-//   borderLeft: "0.1px solid #e4e9f0",
-  border: "1px solid rgba(184, 183, 183, 0.4)" ,
+  //   borderBottom: "1px solid #3b414d",
+  //   borderRight: "0.0px solid #e4e9f0",
+  //   borderLeft: "0.1px solid #e4e9f0",
+  border: "1px solid rgba(148, 148, 148, 0.4)",
   fontWeight: 600,
   fontSize: 12,
   textTransform: "uppercase",
@@ -448,12 +466,12 @@ const thStyle: React.CSSProperties = {
 
 const tdStyle: React.CSSProperties = {
   padding: "10px 12px",
-//   borderBottom: "1px solid #e1e4ed",
-//   borderRight: "0.01px solid #bebbbbff",
-//   borderLeft: "0.01px solid #bebbbbff",
-    border: "1px solid rgba(145, 145, 146, 0.4)" ,  
-    verticalAlign: "top",
-    fontSize: 13,
+  //   borderBottom: "1px solid #e1e4ed",
+  //   borderRight: "0.01px solid #bebbbbff",
+  //   borderLeft: "0.01px solid #bebbbbff",
+  border: "1px solid rgba(145, 145, 146, 0.4)",
+  verticalAlign: "top",
+  fontSize: 13,
 };
 
 const trStyle: React.CSSProperties = {
