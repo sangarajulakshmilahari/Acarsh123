@@ -14,7 +14,8 @@
 
 
 
-import * as sql from "mssql";
+// import * as sql from "mssql";
+import sql from "mssql";
 
 const config: sql.config = {
   user: "sa",

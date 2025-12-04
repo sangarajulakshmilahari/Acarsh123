@@ -76,7 +76,7 @@ export default function LeadDetailsPage(): JSX.Element {
         // 1) Try to fetch single lead by ID
 
         const trySingle = await fetch(
-          `/api/employees/${encodeURIComponent(leadId)}`
+          `/api/employees/leads/${encodeURIComponent(leadId)}`
         );
 
         if (trySingle.ok) {
@@ -89,7 +89,7 @@ export default function LeadDetailsPage(): JSX.Element {
 
         // 2) Fallback: fetch all leads and find matching one
 
-        const res = await fetch("/api/employees");
+        const res = await fetch("/api/employees/leads");
 
         if (!res.ok)
           throw new Error(`Failed to fetch employees (${res.status})`);
