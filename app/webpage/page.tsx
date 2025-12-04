@@ -9,9 +9,10 @@ import EmployeeList, { Employee } from "./components/EmployeeList";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import AddLeadPage from "./leads/page";
+import LeadDetailsPage from "./leads/Leaddetails/page";
 
 // Tabs
-type TabKey = "home" | "dashboard" | "leads" | "addLead" | "Prospect" | "Account" | "Remainder";
+type TabKey = "home" | "dashboard" | "leads" | "addLead" | "Prospect" | "leadDetails" | "Account" | "Remainder";
 
 export default function HelloPage(): JSX.Element {
   const dispatch = useDispatch();
@@ -31,6 +32,8 @@ export default function HelloPage(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [employeesLocal, setEmployeesLocal] = useState<Employee[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | string | null>(null);
+
 
   // sidebar collapsed => icon-only mode
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -42,7 +45,8 @@ export default function HelloPage(): JSX.Element {
     Prospect: <Image src="/prospect.png" alt="Prospect" width={20} height={20} />,
     Account: <Image src="/account.png" alt="Account" width={20} height={20} />,
     Remainder: <Image src="/bell.png" alt="Remainder" width={20} height={20} />,
-    addLead: ""
+    addLead: "",
+    leadDetails:""
   };
 
   // ---- API CALLS ----
@@ -119,7 +123,7 @@ export default function HelloPage(): JSX.Element {
       await fetchProspectsList();
     } else if (tab === "Account") {
       await fetchAccountList();
-    } 
+    }
     // "Account" & others can get their own fetch later
   }
 
@@ -159,6 +163,10 @@ export default function HelloPage(): JSX.Element {
             loading={loading}
             error={error}
             onAddLead={() => setActiveTab("addLead")}
+            onOpenLeadDetails={(leadId) => {
+              setSelectedLeadId(leadId);
+              setActiveTab("leadDetails");
+            }}
           />
         );
 
@@ -185,6 +193,14 @@ export default function HelloPage(): JSX.Element {
 
       case "addLead":
         return <AddLeadPage onBack={() => setActiveTab("leads")} />;
+
+      case "leadDetails":
+        return (
+          <LeadDetailsPage
+            leadId={selectedLeadId}
+            onBack={() => setActiveTab("leads")}
+          />
+        );
 
       default:
         return null;

@@ -1,7 +1,7 @@
 {
-  "/api/auth/route": "app/api/auth/route.js",
-  "/webpage/page": "app/webpage/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
+  "/webpage/page": "app/webpage/page.js",
   "/api/employees/leads/route": "app/api/employees/leads/route.js",
   "/api/employees/prospects/route": "app/api/employees/prospects/route.js",
   "/api/employees/account/route": "app/api/employees/account/route.js"
