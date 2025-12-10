@@ -51,7 +51,6 @@ export default function EmployeeList({
   const [query, setQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Label for the Add button based on `type`
   const addButtonLabel = useMemo(() => {
     switch (type) {
       case "prospect":
@@ -64,7 +63,6 @@ export default function EmployeeList({
     }
   }, [type]);
 
-  // Normalize employees prop to a plain array (support wrapper shapes like { data: [...] })
   const employeesList: Employee[] = Array.isArray(employees)
     ? employees
     : employees &&
@@ -100,9 +98,17 @@ export default function EmployeeList({
     });
   }, [employeesList, query]);
 
-  //   if (loading) return <div>Loading leads...</div>;
   if (error) return <div style={{ color: "red" }}>Error: {error}</div>;
   if (employeesList.length === 0) return <div>No leads found.</div>;
+
+  const baseFontStyles: React.CSSProperties = {
+    fontFamily: "Open Sans, sans-serif",
+    fontSize: "10.88px",
+    lineHeight: 1.35,
+    letterSpacing: "0.2px",
+    WebkitFontSmoothing: "antialiased",
+    MozOsxFontSmoothing: "grayscale",
+  };
 
   return (
     <div
@@ -112,9 +118,9 @@ export default function EmployeeList({
         borderRadius: 4,
         boxShadow: "0 0 4px rgba(0,0,0,0.08)",
         overflow: "hidden",
+        ...baseFontStyles,
       }}
     >
-      {/* ---------- Top bar: Add + Search ---------- */}
       <div
         style={{
           display: "flex",
@@ -124,7 +130,6 @@ export default function EmployeeList({
           padding: "16px",
         }}
       >
-        {/* Add Button (text depends on `type`) */}
         <button
           onClick={onAddLead}
           style={{
@@ -133,17 +138,18 @@ export default function EmployeeList({
             padding: "7px 12px",
             border: "none",
             borderRadius: 6,
-            fontSize: 13,
+            fontSize: "10.88px",
             cursor: "pointer",
-            fontWeight: "bold",
+            fontWeight: "700",
+            fontFamily: "inherit",
+            lineHeight: "normal",
+            WebkitFontSmoothing: "antialiased",
           }}
         >
           {addButtonLabel}
         </button>
 
-        {/* Search Bar */}
         <div style={{ position: "relative", display: "inline-block" }}>
-          {/* Search Icon Image */}
           <Image
             src="/search.png"
             alt="search"
@@ -158,7 +164,6 @@ export default function EmployeeList({
             }}
           />
 
-          {/* Search Input */}
           <input
             type="text"
             value={query}
@@ -176,11 +181,14 @@ export default function EmployeeList({
                 ? "1.5px solid #4a90e2"
                 : "1px solid #d1d5db",
               boxShadow: isSearchFocused
-                ? "0 0 8px rgba(8, 40, 218, 0.25)"
+                ? "0 0 8px rgba(8, 40, 218, 0.12)"
                 : "none",
-              fontSize: 14,
+              fontSize: "10.88px",
               outline: "none",
               transition: "box-shadow 0.15s ease, border 0.15s ease",
+              fontFamily: "inherit",
+              lineHeight: 1.35,
+              WebkitFontSmoothing: "antialiased",
             }}
           />
         </div>
@@ -190,10 +198,15 @@ export default function EmployeeList({
         <table
           style={{
             width: "100%",
-            borderCollapse: "separate",
+            borderCollapse: ("collapse" as unknown) as React.CSSProperties["borderCollapse"],
             borderSpacing: 0,
             minWidth: 900,
-            fontFamily: "Open sans, system-ui, -apple-system, sans-serif",
+            fontFamily: "inherit",
+            fontSize: "inherit",
+            lineHeight: 1.35,
+            letterSpacing: "0.2px",
+            borderStyle: "solid",
+            borderWidth: 0, // collapse will use cell borders instead
           }}
         >
           <thead>
@@ -217,13 +230,12 @@ export default function EmployeeList({
 
               return (
                 <tr key={emp.LeadId as React.Key} style={rowStyle}>
-                  {/* Company Column */}
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
                     <div
                       style={{
-                        fontWeight: "bold",
-                        fontSize: 9.52,
-                        fontFamily: "sans-serif",
+                        fontWeight: 700,
+                        fontSize: "inherit",
+                        lineHeight: "inherit",
                       }}
                     >
                       {emp.CompanyName || "—"}
@@ -231,12 +243,12 @@ export default function EmployeeList({
                     {emp.CompanyLocation && (
                       <div
                         style={{
-                          fontSize: "9.52px",
-                          color: "#7a7f87",
-                          marginTop: 2,
+                          color: "#6c7293",
+                          marginTop: 6,
                           display: "flex",
                           alignItems: "center",
-                          gap: 4,
+                          gap: 6,
+                          fontSize: "inherit",
                         }}
                       >
                         <span>
@@ -252,7 +264,6 @@ export default function EmployeeList({
                     )}
                   </td>
 
-                  {/* Contacts Column */}
                   <td style={tdStyle}>
                     {emp.Contacts && emp.Contacts.length > 0 ? (
                       emp.Contacts.map((c, index) => (
@@ -264,31 +275,32 @@ export default function EmployeeList({
                               index === emp.Contacts.length - 1 ? 0 : 6,
                             borderBottom:
                               index !== emp.Contacts.length - 1
-                                ? "1px solid #d7d7d7"
+                                ? "0.5px solid #e0e0e0"
                                 : "none",
                             margin: 0,
                             display: "block",
                           }}
                         >
-                          {/* Name + Role */}
                           <div
                             onDoubleClick={() =>
                               onOpenLeadDetails?.(emp.LeadId)
                             }
                             title="Double click to open details"
                             style={{
-                              fontWeight: "600",
-                              fontSize: "10px",
+                              fontWeight: 700,
+                              color: "#212529",
                               cursor: "pointer",
+                              fontSize: "inherit",
+                              lineHeight: "inherit",
                             }}
                           >
                             {c.ContactName || "—"}
                             {c.ContactRoleName && (
                               <span
                                 style={{
-                                  fontSize: 10,
-                                  color: "#8a8a8a",
-                                  marginLeft: 4,
+                                  color: "#6c7293",
+                                  marginLeft: 6,
+                                  fontWeight: 600,
                                 }}
                               >
                                 ({c.ContactRoleName})
@@ -296,31 +308,32 @@ export default function EmployeeList({
                             )}
                           </div>
 
-                          {/* Title */}
                           {c.ContactTitle && (
                             <div
                               style={{
-                                fontSize: "9.52px",
-                                fontWeight: "normal",
-                                color: "#000",
-                                marginTop: 0,
+                                fontWeight: 600,
+                                color: "#6c7293",
+                                marginTop: 2,
+                                fontSize: "inherit",
+                                lineHeight: "inherit",
                               }}
                             >
                               {c.ContactTitle}
                             </div>
                           )}
 
-                          {/* Email */}
                           {c.ContactEmail && (
                             <div
                               style={{
-                                fontSize: "10px",
-                                color: "#444",
-                                marginTop: 0,
+                                fontSize: "inherit",
+                                color: "#6c7293",
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 4,
+                                margin: "6px 0 0",
+                                gap: 6,
                                 whiteSpace: "nowrap",
+                                fontWeight: 400,
+                                lineHeight: "inherit",
                               }}
                             >
                               <Image
@@ -333,8 +346,10 @@ export default function EmployeeList({
                               <a
                                 href={`mailto:${c.ContactEmail}`}
                                 style={{
-                                  color: "#7a7a7aff",
+                                  color: "#6c7293",
                                   textDecoration: "none",
+                                  fontSize: "inherit",
+                                  lineHeight: "inherit",
                                 }}
                               >
                                 {c.ContactEmail}
@@ -342,16 +357,16 @@ export default function EmployeeList({
                             </div>
                           )}
 
-                          {/* Phone */}
                           {c.ContactPhone && (
                             <div
                               style={{
-                                fontSize: 9.52,
-                                color: "#444",
-                                marginTop: 0,
+                                fontSize: "inherit",
+                                color: "#6c7293",
+                                marginTop: 4,
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 4,
+                                gap: 6,
+                                lineHeight: "inherit",
                               }}
                             >
                               <span>
@@ -367,6 +382,8 @@ export default function EmployeeList({
                                 style={{
                                   color: "inherit",
                                   textDecoration: "none",
+                                  fontSize: "inherit",
+                                  lineHeight: "inherit",
                                 }}
                               >
                                 {c.ContactPhone}
@@ -380,26 +397,23 @@ export default function EmployeeList({
                     )}
                   </td>
 
-                  {/* Source */}
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div style={{ fontSize: 9.52 }}>
-                      {emp.LeadSource || "—"}
-                    </div>
+                    <div style={{ color: "#212529" }}>{emp.LeadSource || "—"}</div>
                   </td>
 
-                  {/* Status */}
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
                     {emp.StatusName ? (
                       <span
                         style={{
                           display: "inline-block",
-                          padding: "2px 8px",
+                          padding: "4px 10px",
                           borderRadius: 12,
-                          fontSize: 9.52,
-                          fontWeight: 600,
+                          fontSize: "inherit",
+                          fontWeight: 700,
                           backgroundColor: "#e4f2ff",
                           color: "#3a77e3",
                           textTransform: "uppercase",
+                          lineHeight: "inherit",
                         }}
                       >
                         {emp.StatusName}
@@ -409,29 +423,24 @@ export default function EmployeeList({
                     )}
                   </td>
 
-                  {/* Info Column */}
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    {/* Date */}
-                    <div style={{ fontSize: 9.52, marginBottom: 2 }}>
-                      <span style={{ fontWeight: "bold" }}>Date: </span>
+                    <div style={{ fontSize: "inherit", marginBottom: 6 }}>
+                      <span style={{ fontWeight: 700 }}>Date: </span>
                       {formatDate(emp.LeadDate)}
                     </div>
 
-                    {/* Notes */}
-                    <div style={{ fontSize: 9.52 }}>
-                      <span style={{ fontWeight: "bold" }}>Notes: </span>
+                    <div style={{ fontSize: "inherit" }}>
+                      <span style={{ fontWeight: 700 }}>Notes: </span>
                       {emp.LeadNotes && emp.LeadNotes.trim() !== ""
                         ? emp.LeadNotes
                         : "—"}
                     </div>
                   </td>
 
-                  {/* Owner */}
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div style={{ fontSize: 9.52 }}>{emp.OwnerName || "—"}</div>
+                    <div style={{ fontSize: "inherit" }}>{emp.OwnerName || "—"}</div>
                   </td>
 
-                  {/* Actions */}
                   <td
                     style={{
                       ...tdStyle,
@@ -451,6 +460,8 @@ export default function EmployeeList({
                         justifyContent: "center",
                         width: "100%",
                         height: "100%",
+                        fontFamily: "inherit",
+                        fontSize: "inherit",
                       }}
                     >
                       <Image
@@ -480,23 +491,28 @@ function formatDate(value: string | number | Date) {
 
 const thStyle: React.CSSProperties = {
   textAlign: "left",
-  padding: "8px 12px",
-  border: "1px solid rgba(148, 148, 148, 0.4)",
-  fontWeight: 600,
-  fontSize: 12,
-  textTransform: "uppercase",
+  padding: "10px 12px",
+  border: "0.5px solid #d0d0d0",
+  fontWeight: 700,
+  fontSize: "10.88px",
   backgroundColor: "#252b36",
   color: "#ffffff",
   position: "sticky",
   top: 0,
   zIndex: 1,
+  fontFamily: "inherit",
+  lineHeight: 1.35,
+  letterSpacing: "0.2px",
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  border: "1px solid rgba(145, 145, 146, 0.4)",
+  padding: "12px 12px",
+  border: "0.5px solid #dcdcdc",
   verticalAlign: "top",
-  fontSize: 13,
+  fontSize: "10.88px",
+  fontFamily: "inherit",
+  lineHeight: 1.35,
+  letterSpacing: "0.2px",
 };
 
 const trStyle: React.CSSProperties = {
