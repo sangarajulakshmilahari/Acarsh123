@@ -238,9 +238,7 @@ export default function HelloPage(): JSX.Element {
           <LeadDetailsPage
             leadId={selectedLeadId}
             origin={selectedLeadOrigin ?? "leads"}
-            // when back is clicked in details, return to the origin tab
-            onBack={() => setActiveTab(selectedLeadOrigin ?? "leads")}
-            // on edit — route to the appropriate add/edit page based on origin
+            onBack={() => setActiveTab(selectedLeadOrigin ?? "leads")}          
             onEdit={() => {
               if (selectedLeadOrigin === "Prospect") setActiveTab("addProspect");
               else if (selectedLeadOrigin === "Account") setActiveTab("addAccount");

@@ -53,14 +53,14 @@ type LeadDetailsProps = {
   leadId?: number | string | null;
   onBack?: () => void;
   onEdit?: () => void;
-  origin?: OriginType; // <-- added
+  origin?: OriginType; 
 };
 
 export default function LeadDetailsPage({
   leadId,
   onBack,
   onEdit,
-  origin = "leads", // <-- default origin
+  origin = "leads", 
 }: LeadDetailsProps): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -71,8 +71,6 @@ export default function LeadDetailsPage({
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [showAddOpportunity, setShowAddOpportunity] = useState(false);
-
-  // Take ID from props first, else from URL (?leadId=...)
   const leadIdFromQuery = searchParams.get("leadId");
   const effectiveLeadId = leadId ?? leadIdFromQuery;
 
@@ -96,7 +94,7 @@ export default function LeadDetailsPage({
       onBack();
       return;
     } else {
-      // route back based on origin
+     
       if (origin === "Prospect") {
         router.push("/webpage?tab=prospect");
       } else if (origin === "Account") {
@@ -111,13 +109,12 @@ export default function LeadDetailsPage({
       onEdit();
       return;
     } else {
-      // route edit based on origin
       if (origin === "Prospect") {
-        router.push("/webpage/leads/addleed?type=prospect");
+        router.push("/webpage/leads/edit?type=prospect");
       } else if (origin === "Account") {
-        router.push("/webpage/leads/addleed?type=account");
+        router.push("/webpage/leads/edit?type=account");
       } else {
-        router.push("/webpage/leads/addleed");
+        router.push("/webpage/leads/edit");
       }
     }
   };
@@ -193,16 +190,16 @@ export default function LeadDetailsPage({
     );
   }
 
-  if (loading) {
-    return (
-      <div style={{ padding: 20 }}>
-        <button onClick={handleBack} style={backBtnStyle}>
-          {getBackLabel()}
-        </button>
-        <p style={{ marginTop: 12 }}>Loading lead {effectiveLeadId}…</p>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div style={{ padding: 20 }}>
+  //       <button onClick={handleBack} style={backBtnStyle}>
+  //         {getBackLabel()}
+  //       </button>
+  //       <p style={{ marginTop: 12 }}>Loading lead {effectiveLeadId}…</p>
+  //     </div>
+  //   );
+  // }
 
   if (error) {
     return (
@@ -221,7 +218,7 @@ export default function LeadDetailsPage({
         <button onClick={handleBack} style={backBtnStyle}>
           {getBackLabel()}
         </button>
-        <p style={{ marginTop: 12 }}>No data found for this lead.</p>
+        {/* <p style={{ marginTop: 12 }}>No data found for this lead.</p> */}
       </div>
     );
   }
