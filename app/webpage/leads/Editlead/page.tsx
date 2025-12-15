@@ -170,11 +170,11 @@ export default function EditLeadPage({
       <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 10 }}>
         Edit Lead - {lead.CompanyName}
       </h2>
-      <hr style={{ marginBottom: 20 }} />
+      <hr style={{ marginBottom: 20,border: "1px solid #3a77e3" }} />
 
       {/* ================= COMPANY INFORMATION ================= */}
       <section style={cardStyle}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 25 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, borderBottom: "1px solid #e6e6e6",paddingBottom:10}}>
           Company Information
         </h3>
 
@@ -183,6 +183,7 @@ export default function EditLeadPage({
             <label style={labelStyle}>Company Name</label>
             <input
               className="form-control"
+              style={{}}
               value={lead.CompanyName}
               onChange={(e) => updateField("CompanyName", e.target.value)}
             />
@@ -251,7 +252,7 @@ export default function EditLeadPage({
 
       {/* ================= CONTACT INFORMATION ================= */}
       <section style={cardStyle}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 25 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 25, borderBottom: "1px solid #e6e6e6",paddingBottom:10 }}>
           Contact Information
         </h3>
 
