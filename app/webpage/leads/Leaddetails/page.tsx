@@ -9,7 +9,6 @@ type Contact = {
   ContactTitle?: string;
   ContactRoleName?: string;
 };
-
 type Activity = {
   ActivityDate: string;
   Mode: string;
@@ -23,6 +22,7 @@ type Reminder = {
   Status?: string;
   Notification?: string;
 };
+
 type Opportunity = {
   CreatedDate: string;
   Service: string;
@@ -47,24 +47,25 @@ type Lead = {
 };
 
 // NEW: origin type & prop
-type OriginType = "leads" | "Prospect" | "Account";
+type OriginType = "leads" | "Prospect" | "Account"|"MasterAccount";
 
 type LeadDetailsProps = {
   leadId?: number | string | null;
   onBack?: () => void;
-  onEdit?: () => void;
-  origin?: OriginType; 
+  onEdit?: (leadId?: number | string | null) => void;
+  origin?: OriginType; // <-- added
 };
 
 export default function LeadDetailsPage({
   leadId,
   onBack,
   onEdit,
-  origin = "leads", 
+  origin = "leads",
 }: LeadDetailsProps): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
-
+  const originFromQuery = searchParams.get("origin") as OriginType | null;
+  const finalOrigin = originFromQuery ?? origin;
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,10 +77,16 @@ export default function LeadDetailsPage({
 
   // NEW: helpers to pick label / back text
   const getConvertLabel = () => {
-    if (origin === "leads") return "Convert to Prospect";
-    if (origin === "Prospect") return "Convert to Account";
-    if (origin === "Account") return "Convert to Master Account";
+    if (finalOrigin === "leads") return "Convert to Prospect";
+    if (finalOrigin === "Prospect") return "Convert to Account";
+    if (finalOrigin === "Account") return "Convert to Master Account";
     return "Convert";
+  };
+  const getTargetType = () => {
+    if (finalOrigin === "leads") return "Prospect";
+    if (finalOrigin === "Prospect") return "Account";
+    if (finalOrigin === "Account") return "MasterAccount";
+    return "";
   };
 
   const getBackLabel = () => {
@@ -94,7 +101,7 @@ export default function LeadDetailsPage({
       onBack();
       return;
     } else {
-     
+
       if (origin === "Prospect") {
         router.push("/webpage?tab=prospect");
       } else if (origin === "Account") {
@@ -106,18 +113,51 @@ export default function LeadDetailsPage({
   };
   const handleEdit = () => {
     if (onEdit) {
-      onEdit();
+      onEdit(lead?.LeadId ?? effectiveLeadId ?? null);
       return;
     } else {
-      if (origin === "Prospect") {
-        router.push("/webpage/leads/edit?type=prospect");
-      } else if (origin === "Account") {
-        router.push("/webpage/leads/edit?type=account");
-      } else {
-        router.push("/webpage/leads/edit");
-      }
+      const id = encodeURIComponent(String(effectiveLeadId));
+      const typeParam = origin ? `&type=${encodeURIComponent(origin)}` : "";
+      router.push(`/webpage/leads/Editlead?leadId=${id}${typeParam}`);
     }
   };
+
+  const handleConvert = async () => {
+    if (!lead?.LeadId) {
+      alert("Lead ID not found");
+      return;
+    }
+
+    const targetType = getTargetType();
+    if (!targetType) return;
+
+    try {
+      const res = await fetch("/api/employees/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: lead.LeadId,
+          targetType,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Conversion failed");
+      }
+      alert(`${getConvertLabel()} successful`);
+      if (targetType === "Prospect") {
+        router.push("/webpage?tab=prospect");
+      } else {
+        router.push("/webpage?tab=account");
+      }
+    } catch (error: any) {
+      console.error("Convert error:", error);
+      alert(error.message || "Failed to convert");
+    }
+  };
+
+
 
   useEffect(() => {
     if (!effectiveLeadId) {
@@ -177,7 +217,7 @@ export default function LeadDetailsPage({
     };
   }, [effectiveLeadId, origin]);
 
-  // ---------- EARLY STATES ----------
+  //  EARLY STATES 
 
   if (!effectiveLeadId) {
     return (
@@ -189,17 +229,6 @@ export default function LeadDetailsPage({
       </div>
     );
   }
-
-  // if (loading) {
-  //   return (
-  //     <div style={{ padding: 20 }}>
-  //       <button onClick={handleBack} style={backBtnStyle}>
-  //         {getBackLabel()}
-  //       </button>
-  //       <p style={{ marginTop: 12 }}>Loading lead {effectiveLeadId}…</p>
-  //     </div>
-  //   );
-  // }
 
   if (error) {
     return (
@@ -218,15 +247,14 @@ export default function LeadDetailsPage({
         <button onClick={handleBack} style={backBtnStyle}>
           {getBackLabel()}
         </button>
-        {/* <p style={{ marginTop: 12 }}>No data found for this lead.</p> */}
       </div>
     );
   }
 
-  // ---------- STYLES ----------
+  // STYLES 
 
   const container: React.CSSProperties = {
-    padding: 60,
+    padding: 15,
     maxWidth: 1100,
     margin: "0 auto",
     fontFamily:
@@ -323,8 +351,6 @@ export default function LeadDetailsPage({
     fontWeight: 700,
     marginBottom: 10,
     color: "#333",
-    // borderBottom: "1px solid #e6e6e6",
-    // paddingBottom: 8,
   };
 
   const label: React.CSSProperties = {
@@ -332,6 +358,7 @@ export default function LeadDetailsPage({
     color: "#444",
     width: 120,
     display: "inline-block",
+    fontSize: 13,
   };
 
   const value: React.CSSProperties = {
@@ -444,7 +471,7 @@ export default function LeadDetailsPage({
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    fontSize:13
+    fontSize: 13
   };
 
   const modalFooter: React.CSSProperties = {
@@ -479,7 +506,7 @@ export default function LeadDetailsPage({
     cursor: "pointer",
   };
 
-  // ---------- MAIN RENDER ----------
+  // MAIN RENDER 
 
   return (
     <div style={container}>
@@ -495,11 +522,16 @@ export default function LeadDetailsPage({
 
         <div style={topActions}>
           <button
-            onClick={() => alert(getConvertLabel())}
+            onClick={handleConvert}
             style={secondaryBtn}
+            disabled={finalOrigin === "MasterAccount"}
           >
-            {getConvertLabel()}
+            {finalOrigin === "MasterAccount"
+              ? "Already a Master Account"
+              : getConvertLabel()}
           </button>
+
+
 
           <button onClick={handleEdit} style={primaryBtn}>
             Edit
@@ -509,7 +541,7 @@ export default function LeadDetailsPage({
 
       <div style={rowStyle}>
         <div style={cardStyle}>
-          <div style={{...sectionTitle,borderBottom: "1px solid #e6e6e6",paddingBottom: 8}}>Company Information</div>
+          <div style={{ ...sectionTitle, borderBottom: "1px solid #e6e6e6", paddingBottom: 8 }}>Company Information</div>
           <div style={{ marginBottom: 8 }}>
             <span style={contactRowLabel}>Company: </span>
             <span style={value}>{lead.CompanyName}</span>
@@ -556,7 +588,7 @@ export default function LeadDetailsPage({
         </div>
 
         <div style={rightCardStyle}>
-          <div style={{...sectionTitle,borderBottom: "1px solid #e6e6e6",paddingBottom: 8}}>Contacts</div>
+          <div style={{ ...sectionTitle, borderBottom: "1px solid #e6e6e6", paddingBottom: 8 }}>Contacts</div>
 
           {(lead.Contacts || []).map((c, idx) => (
             <div key={idx} style={contactCardStyle}>
@@ -771,7 +803,7 @@ export default function LeadDetailsPage({
               </select>
 
               <label>Notes*</label>
-              <textarea style={{ ...inputBox, height: 40,width:388 }} />
+              <textarea style={{ ...inputBox, height: 40, width: 388 }} />
             </div>
 
             <div style={modalFooter}>
@@ -794,11 +826,11 @@ export default function LeadDetailsPage({
             <div style={modalHeader}>Add Lead Reminder</div>
 
             <div style={modalBody}>
-              <label>Reminder Date *</label>
-              <input type="date" style={inputBox} />
+              <label>Reminder Date*</label>
+              <input type="date" style={{ ...inputBox, width: 388 }} />
 
-              <label>Reminder Notes *</label>
-              <textarea style={{ ...inputBox, height: 80 }} />
+              <label>Reminder Notes*</label>
+              <textarea style={{ ...inputBox, height: 80, width: 388 }} />
 
               <label>Status</label>
               <select style={inputBox}>
@@ -809,7 +841,7 @@ export default function LeadDetailsPage({
 
               <label>Notification Channels</label>
               <select style={inputBox}>
-                <option>-- Select NotificationChannel --</option>
+                <option>- - Select NotificationChannel - -</option>
                 <option>Email</option>
                 <option>SMS</option>
                 <option>Email+SMS</option>
@@ -851,12 +883,11 @@ export default function LeadDetailsPage({
             </div>
 
             <div style={modalBody}>
-              {/* SERVICE + STATUS */}
               <div style={{ display: "flex", gap: 20 }}>
                 <div style={{ flex: 1 }}>
                   <label>Service *</label>
                   <select style={inputBox}>
-                    <option>-- Select Service --</option>
+                    <option>- - Select Service - -</option>
                     <option>AI</option>
                     <option>Cloud</option>
                     <option>Data Engineering</option>
@@ -868,7 +899,7 @@ export default function LeadDetailsPage({
                 <div style={{ flex: 1 }}>
                   <label>Status *</label>
                   <select style={inputBox}>
-                    <option>-- Select Status --</option>
+                    <option>- - Select Status - -</option>
                     <option>Engagement Model Identified</option>
                     <option>Proposal Sent</option>
                     <option>Negotiation</option>
@@ -878,9 +909,7 @@ export default function LeadDetailsPage({
                 </div>
               </div>
 
-              {/* PROBABILITY + ENGAGEMENT MODEL */}
               <div style={{ display: "flex", gap: 20 }}>
-                {/* Probability */}
                 <div style={{ flex: 1 }}>
                   <label>Probability*</label>
                   <div
@@ -910,7 +939,7 @@ export default function LeadDetailsPage({
                 <div style={{ flex: 1 }}>
                   <label>Engagement Model*</label>
                   <select style={inputBox}>
-                    <option>-- Select Engagement Model --</option>
+                    <option>- - Select Engagement Model - -</option>
                     <option>Competence Center (ODC)</option>
                     <option>Time & Material</option>
                     <option>Fixed Bid</option>
@@ -920,7 +949,7 @@ export default function LeadDetailsPage({
               </div>
 
               {/* TECHNOLOGY */}
-              <label style={{ marginTop: 1 }}>Technology*</label>
+              <label style={{ marginTop: 10 }}>Technology*</label>
 
               <div
                 style={{

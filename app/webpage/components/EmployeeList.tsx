@@ -103,7 +103,7 @@ export default function EmployeeList({
 
   const baseFontStyles: React.CSSProperties = {
     fontFamily: "Open Sans, sans-serif",
-    fontSize: "10.88px",
+    fontSize: "9.px",
     lineHeight: 1.35,
     letterSpacing: "0.2px",
     WebkitFontSmoothing: "antialiased",
@@ -113,7 +113,7 @@ export default function EmployeeList({
   return (
     <div
       style={{
-        marginTop: 60,
+        // marginTop: 40,
         background: "#ffffff",
         borderRadius: 4,
         boxShadow: "0 0 4px rgba(0,0,0,0.08)",
@@ -138,7 +138,7 @@ export default function EmployeeList({
             padding: "7px 12px",
             border: "none",
             borderRadius: 6,
-            fontSize: "10.88px",
+            fontSize: "10.05px",
             cursor: "pointer",
             fontWeight: "700",
             fontFamily: "inherit",
@@ -183,7 +183,7 @@ export default function EmployeeList({
               boxShadow: isSearchFocused
                 ? "0 0 8px rgba(8, 40, 218, 0.12)"
                 : "none",
-              fontSize: "10.88px",
+              fontSize: "10.05px",
               outline: "none",
               transition: "box-shadow 0.15s ease, border 0.15s ease",
               fontFamily: "inherit",
@@ -194,29 +194,30 @@ export default function EmployeeList({
         </div>
       </div>
 
-      <div style={{ maxHeight: 480, overflowY: "auto", overflowX: "auto" }}>
+      <div style={{ maxHeight: 420, overflowY: "auto", overflowX: "auto" }}>
         <table
           style={{
             width: "100%",
-            borderCollapse: ("collapse" as unknown) as React.CSSProperties["borderCollapse"],
+            borderCollapse:
+              "collapse" as unknown as React.CSSProperties["borderCollapse"],
             borderSpacing: 0,
-            minWidth: 900,
+            minWidth: 1040,
             fontFamily: "inherit",
             fontSize: "inherit",
             lineHeight: 1.35,
             letterSpacing: "0.2px",
             borderStyle: "solid",
-            borderWidth: 0, // collapse will use cell borders instead
+            borderWidth: 0, 
           }}
         >
           <thead>
             <tr>
-              <th style={thStyle}>Company</th>
-              <th style={thStyle}>Contacts</th>
-              <th style={thStyle}>Source</th>
+              <th style={{...thStyle,width:180}}>Company</th>
+              <th style={{...thStyle,width:200}}>Contacts</th>
+              <th style={{ ...thStyle, width: 380 }}>Source</th>
               <th style={thStyle}>Status</th>
-              <th style={thStyle}>Info</th>
-              <th style={thStyle}>Owner</th>
+              <th style={{...thStyle,width:20}}>Info</th>
+              <th style={{ ...thStyle, width: 150 }}>Owner</th>
               <th style={thStyle}>Actions</th>
             </tr>
           </thead>
@@ -244,7 +245,7 @@ export default function EmployeeList({
                       <div
                         style={{
                           color: "#6c7293",
-                          marginTop: 6,
+                          // marginTop: 6,
                           display: "flex",
                           alignItems: "center",
                           gap: 6,
@@ -270,13 +271,15 @@ export default function EmployeeList({
                         <div
                           key={index}
                           style={{
-                            paddingTop: index === 0 ? 0 : 6,
-                            paddingBottom:
-                              index === emp.Contacts.length - 1 ? 0 : 6,
+                            padding: "2px 0", 
+                            // paddingTop: index === 0 ? 0 : 6,
+                            // paddingBottom:
+                            //   index === emp.Contacts.length - 1 ? 0 : 6,
                             borderBottom:
                               index !== emp.Contacts.length - 1
                                 ? "0.5px solid #e0e0e0"
                                 : "none",
+                            width:"100%",
                             margin: 0,
                             display: "block",
                           }}
@@ -292,6 +295,7 @@ export default function EmployeeList({
                               cursor: "pointer",
                               fontSize: "inherit",
                               lineHeight: "inherit",
+                              marginBottom: 0
                             }}
                           >
                             {c.ContactName || "—"}
@@ -308,15 +312,24 @@ export default function EmployeeList({
                             )}
                           </div>
 
-                          {c.ContactTitle && (
+                          {/* Title */}
+                          {c.ContactTitle && c.ContactTitle.trim() !== "" && (
                             <div
                               style={{
+                                marginBottom: 0,
+                                maxWidth: "150px",
+                                /* truncation: single-line ellipsis, no column width change */
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                display: "block",
                                 fontWeight: 600,
                                 color: "#6c7293",
-                                marginTop: 2,
+                                // marginTop: 2,
                                 fontSize: "inherit",
                                 lineHeight: "inherit",
                               }}
+                              title={c.ContactTitle}
                             >
                               {c.ContactTitle}
                             </div>
@@ -329,7 +342,7 @@ export default function EmployeeList({
                                 color: "#6c7293",
                                 display: "flex",
                                 alignItems: "center",
-                                margin: "6px 0 0",
+                                // margin: "6px 0 0",
                                 gap: 6,
                                 whiteSpace: "nowrap",
                                 fontWeight: 400,
@@ -362,7 +375,7 @@ export default function EmployeeList({
                               style={{
                                 fontSize: "inherit",
                                 color: "#6c7293",
-                                marginTop: 4,
+                                // marginTop: 4,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 6,
@@ -398,7 +411,9 @@ export default function EmployeeList({
                   </td>
 
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div style={{ color: "#212529" }}>{emp.LeadSource || "—"}</div>
+                    <div style={{ color: "#212529" ,fontSize:"9.88px"}}>
+                      {emp.LeadSource || "—"}
+                    </div>
                   </td>
 
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
@@ -408,10 +423,10 @@ export default function EmployeeList({
                           display: "inline-block",
                           padding: "4px 10px",
                           borderRadius: 12,
+                          // backgroundColor: "#e4f2ff",
+                          color: "#212529",
                           fontSize: "inherit",
                           fontWeight: 700,
-                          backgroundColor: "#e4f2ff",
-                          color: "#3a77e3",
                           textTransform: "uppercase",
                           lineHeight: "inherit",
                         }}
@@ -424,21 +439,34 @@ export default function EmployeeList({
                   </td>
 
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div style={{ fontSize: "inherit", marginBottom: 6 }}>
+                    {/* Date */}
+                    <div style={{ fontSize: "inherit", marginBottom: 4 }}>
                       <span style={{ fontWeight: 700 }}>Date: </span>
                       {formatDate(emp.LeadDate)}
                     </div>
 
-                    <div style={{ fontSize: "inherit" }}>
-                      <span style={{ fontWeight: 700 }}>Notes: </span>
-                      {emp.LeadNotes && emp.LeadNotes.trim() !== ""
-                        ? emp.LeadNotes
-                        : "—"}
-                    </div>
+                    {/* Notes with partial text + ellipsis + hover full text */}
+                    {emp.LeadNotes && emp.LeadNotes.trim() !== "" && (
+                      <div
+                        style={{
+                          fontSize: "inherit",
+                          maxWidth: "150px", // <--- adjust width to your Info column
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis", // <--- shows partial text + dots (...)
+                        }}
+                        title={emp.LeadNotes} // <--- full text on hover
+                      >
+                        <span style={{ fontWeight: 700}}>Notes: </span>
+                        {emp.LeadNotes}
+                      </div>
+                    )}
                   </td>
 
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div style={{ fontSize: "inherit" }}>{emp.OwnerName || "—"}</div>
+                    <div style={{ fontSize: "inherit" }}>
+                      {emp.OwnerName || "—"}
+                    </div>
                   </td>
 
                   <td
@@ -446,6 +474,7 @@ export default function EmployeeList({
                       ...tdStyle,
                       textAlign: "center",
                       verticalAlign: "middle",
+                      width: 30,
                     }}
                   >
                     <button
@@ -493,8 +522,8 @@ const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "10px 12px",
   border: "0.5px solid #d0d0d0",
-  fontWeight: 700,
-  fontSize: "10.88px",
+  fontWeight: "bold",
+  fontSize: "13px",
   backgroundColor: "#252b36",
   color: "#ffffff",
   position: "sticky",
@@ -506,10 +535,10 @@ const thStyle: React.CSSProperties = {
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "12px 12px",
+  padding: "2px 8px",
   border: "0.5px solid #dcdcdc",
   verticalAlign: "top",
-  fontSize: "10.88px",
+  fontSize: "10.05px",
   fontFamily: "inherit",
   lineHeight: 1.35,
   letterSpacing: "0.2px",
