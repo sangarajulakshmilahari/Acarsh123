@@ -69,6 +69,7 @@ export default function HelloPage(): JSX.Element {
     addAccount: "",
     editLead: "",
   };
+  
 
   // ---- API CALLS ----
 
@@ -131,6 +132,30 @@ export default function HelloPage(): JSX.Element {
       setLoading(false);
     }
   };
+const handleDeleteLead = async (leadId: number | string) => {
+  if (!confirm("Are you sure you want to delete this lead?")) return;
+
+  try {
+    const res = await fetch(
+      `/api/employees/leads?leadId=${leadId}`,
+      { method: "DELETE" }
+    );
+
+    if (!res.ok) {
+      alert("Failed to delete lead");
+      return;
+    }
+
+    // ✅ Update UI only (this is enough)
+    setEmployeesLocal((prev) =>
+      prev ? prev.filter((l) => l.LeadId !== leadId) : prev
+    );
+  } catch (err) {
+    console.error("Delete failed:", err);
+    alert("Something went wrong while deleting");
+  }
+};
+
 
   // ---- TAB HANDLER (single function) ----
 
@@ -184,6 +209,7 @@ export default function HelloPage(): JSX.Element {
             loading={loading}
             error={error}
             onAddLead={() => setActiveTab("addLead")}
+            onDelete={handleDeleteLead} 
             onOpenLeadDetails={(leadId) => {
               setSelectedLeadId(leadId);
               setSelectedLeadOrigin("leads");
