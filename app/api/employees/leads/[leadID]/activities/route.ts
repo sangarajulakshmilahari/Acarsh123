@@ -7,11 +7,8 @@ export async function POST(
   { params }: { params: { leadId: string } }
 ) {
   try {
-    const body = await req.json();
+    const { Mode, Notes, Status, ActivityDate } = await req.json();
 
-    const { Mode, Notes, Status, ActivityDate } = body;
-
-    //basic validation (prevents 400)
     if (!Mode || !Notes || !Status) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -21,22 +18,48 @@ export async function POST(
 
     const pool = await getPool();
 
-    const result = await pool
+    /* 1️⃣ Get StatusId from LeadStatuses */
+    const statusResult = await pool
+      .request()
+      .input("StatusName", sql.VarChar, Status)
+      .query(`
+        SELECT StatusId
+        FROM LeadStatuses
+        WHERE StatusName = @StatusName
+      `);
+
+    if (!statusResult.recordset.length) {
+      return NextResponse.json(
+        { error: "Invalid Status" },
+        { status: 400 }
+      );
+    }
+
+    const StatusId = statusResult.recordset[0].StatusId;
+
+    /* 2️⃣ Insert Activity */
+    const insertResult = await pool
       .request()
       .input("LeadId", sql.Int, Number(params.leadId))
       .input("Mode", sql.VarChar, Mode)
       .input("Notes", sql.VarChar, Notes)
-      .input("Status", sql.VarChar, Status)
+      .input("StatusId", sql.Int, StatusId)
       .input(
         "ActivityDate",
         sql.DateTime,
         ActivityDate ? new Date(ActivityDate) : new Date()
       )
-      // DB logic assumed to exist internally
-      .query("SELECT 1 AS ok"); 
+      .query(`
+        INSERT INTO LeadActivities
+        (LeadId, Mode, Notes, StatusId, ActivityDate)
+        OUTPUT INSERTED.ActivityId, INSERTED.ActivityDate
+        VALUES
+        (@LeadId, @Mode, @Notes, @StatusId, @ActivityDate)
+      `);
 
     return NextResponse.json({
-      ActivityDate,
+      ActivityId: insertResult.recordset[0].ActivityId,
+      ActivityDate: insertResult.recordset[0].ActivityDate,
       Mode,
       Notes,
       Status,

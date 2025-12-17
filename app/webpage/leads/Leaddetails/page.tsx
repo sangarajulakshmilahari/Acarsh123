@@ -97,53 +97,61 @@ export default function LeadDetailsPage({
     EngagementModel: "",
   });
   const handleSaveActivity = async () => {
-    if (!activityForm.Mode || !activityForm.Status || !activityForm.Notes) {
-      alert("Please fill all required fields");
+  if (!activityForm.Mode || !activityForm.Status || !activityForm.Notes) {
+    alert("Please fill all required fields");
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `/api/employees/leads/${effectiveLeadId}/activities`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          Mode: activityForm.Mode,
+          Notes: activityForm.Notes,
+          Status: activityForm.Status,
+          ActivityDate: new Date().toISOString(),
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      console.error("Activity save failed:", err);
+      alert(err.error || "Failed to save activity");
       return;
     }
 
-    try {
-      const res = await fetch(
-        `/api/employees/leads/${effectiveLeadId}/activities`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            Mode: activityForm.Mode,
-            Notes: activityForm.Notes,
-            Status: activityForm.Status,
-            ActivityDate: new Date().toISOString(),
-          }),
-        }
-      );
+    // ✅ Activity saved in DB — get DB response
+    const savedActivity = await res.json();
 
-      console.log("Activity save status:", res.status);
-
-      if (!res.ok) {
-        const err = await res.json();
-        console.error("API error:", err);
-        alert("Save failed");
-        return;
-      }
-
-      const savedActivity = await res.json();
-
-      // ✅ update UI
-      setLead((prev) =>
-        prev
-          ? {
+    // ✅ Update UI with DB-backed data
+    setLead((prev) =>
+      prev
+        ? {
             ...prev,
             Activities: [...(prev.Activities || []), savedActivity],
           }
-          : prev
-      );
+        : prev
+    );
 
-      setShowAddActivity(false);
-    } catch (err) {
-      console.error("Frontend save error:", err);
-      alert("Unexpected error");
-    }
-  };
+    // ✅ Reset form
+    setActivityForm({
+      ActivityDate: "",
+      Mode: "",
+      Status: "",
+      Notes: "",
+    });
+
+    setShowAddActivity(false);
+  } catch (err) {
+    console.error("Frontend save error:", err);
+    alert("Unexpected error while saving activity");
+  }
+};
+
   const handleSaveReminder = async () => {
     if (!reminderForm.ReminderDate || !reminderForm.Notes) {
       alert("Please fill required fields");
