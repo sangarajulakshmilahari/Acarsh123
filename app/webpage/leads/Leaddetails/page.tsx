@@ -44,10 +44,12 @@ type Lead = {
   Activities?: Activity[];
   Reminders?: Reminder[];
   Opportunities?: Opportunity[];
+  AccountTypeId?: number;
+  AccountTypeName?: string;
 };
 
 // NEW: origin type & prop
-type OriginType = "leads" | "Prospect" | "Account"|"MasterAccount";
+type OriginType = "leads" | "Prospect" | "Account" | "MasterAccount";
 
 type LeadDetailsProps = {
   leadId?: number | string | null;
@@ -72,22 +74,174 @@ export default function LeadDetailsPage({
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [showAddOpportunity, setShowAddOpportunity] = useState(false);
+  // ---------------- FORM STATES ----------------
+
+  const [activityForm, setActivityForm] = useState({
+    ActivityDate: "",
+    Mode: "",
+    Notes: "",
+    Status: "",
+  });
+
+  const [reminderForm, setReminderForm] = useState({
+    ReminderDate: "",
+    Notes: "",
+    Status: "Pending",
+    Notification: "",
+  });
+
+  const [opportunityForm, setOpportunityForm] = useState({
+    Service: "",
+    Probability: "",
+    Status: "",
+    EngagementModel: "",
+  });
+  const handleSaveActivity = async () => {
+    if (!activityForm.Mode || !activityForm.Status || !activityForm.Notes) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/employees/leads/${effectiveLeadId}/activities`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            Mode: activityForm.Mode,
+            Notes: activityForm.Notes,
+            Status: activityForm.Status,
+            ActivityDate: new Date().toISOString(),
+          }),
+        }
+      );
+
+      console.log("Activity save status:", res.status);
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("API error:", err);
+        alert("Save failed");
+        return;
+      }
+
+      const savedActivity = await res.json();
+
+      // ✅ update UI
+      setLead((prev) =>
+        prev
+          ? {
+            ...prev,
+            Activities: [...(prev.Activities || []), savedActivity],
+          }
+          : prev
+      );
+
+      setShowAddActivity(false);
+    } catch (err) {
+      console.error("Frontend save error:", err);
+      alert("Unexpected error");
+    }
+  };
+  const handleSaveReminder = async () => {
+    if (!reminderForm.ReminderDate || !reminderForm.Notes) {
+      alert("Please fill required fields");
+      return;
+    }
+
+    const res = await fetch(
+      `/api/employees/leads/${effectiveLeadId}/reminders`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reminderForm),
+      }
+    );
+
+    if (!res.ok) {
+      alert("Failed to save reminder");
+      return;
+    }
+
+    const savedReminder = await res.json();
+
+    setLead((prev) =>
+      prev
+        ? {
+          ...prev,
+          Reminders: [...(prev.Reminders || []), savedReminder],
+        }
+        : prev
+    );
+
+    setShowAddReminder(false);
+  };
+  const handleSaveOpportunity = async () => {
+    if (
+      !opportunityForm.Service ||
+      !opportunityForm.Status ||
+      !opportunityForm.Probability ||
+      !opportunityForm.EngagementModel
+    ) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    const res = await fetch(
+      `/api/employees/leads/${effectiveLeadId}/opportunities`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(opportunityForm),
+      }
+    );
+
+    if (!res.ok) {
+      alert("Failed to save opportunity");
+      return;
+    }
+
+    const saved = await res.json();
+
+    setLead((prev) =>
+      prev
+        ? {
+          ...prev,
+          Opportunities: [...(prev.Opportunities || []), saved],
+        }
+        : prev
+    );
+
+    setShowAddOpportunity(false);
+  };
+
+
+  // Take ID from props first, else from URL (?leadId=...)
   const leadIdFromQuery = searchParams.get("leadId");
   const effectiveLeadId = leadId ?? leadIdFromQuery;
 
   // NEW: helpers to pick label / back text
   const getConvertLabel = () => {
-    if (finalOrigin === "leads") return "Convert to Prospect";
-    if (finalOrigin === "Prospect") return "Convert to Account";
-    if (finalOrigin === "Account") return "Convert to Master Account";
-    return "Convert";
+    if (!lead?.AccountTypeName) return "Convert";
+
+    if (lead.AccountTypeName === "Lead") return "Convert to Prospect";
+    if (lead.AccountTypeName === "Prospect") return "Convert to Account";
+    if (lead.AccountTypeName === "Account") return "Convert to Master Account";
+
+    return "Already a Master Account";
   };
+
   const getTargetType = () => {
-    if (finalOrigin === "leads") return "Prospect";
-    if (finalOrigin === "Prospect") return "Account";
-    if (finalOrigin === "Account") return "MasterAccount";
+    if (!lead?.AccountTypeName) return "";
+
+    if (lead.AccountTypeName === "Lead") return "Prospect";
+    if (lead.AccountTypeName === "Prospect") return "Account";
+    if (lead.AccountTypeName === "Account") return "MasterAccount";
+
     return "";
   };
+
 
   const getBackLabel = () => {
     if (origin === "leads") return "← Back to Leads";
@@ -129,13 +283,17 @@ export default function LeadDetailsPage({
     }
 
     const targetType = getTargetType();
-    if (!targetType) return;
+    if (!targetType) {
+      alert("No further conversion possible");
+      return;
+    }
 
     try {
       const res = await fetch("/api/employees/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "convert",
           leadId: lead.LeadId,
           targetType,
         }),
@@ -145,17 +303,24 @@ export default function LeadDetailsPage({
         const err = await res.json();
         throw new Error(err.error || "Conversion failed");
       }
+
       alert(`${getConvertLabel()} successful`);
+
+      // ✅ Redirect based on NEXT LEVEL
       if (targetType === "Prospect") {
         router.push("/webpage?tab=prospect");
-      } else {
+      } else if (targetType === "Account") {
         router.push("/webpage?tab=account");
+      } else if (targetType === "MasterAccount") {
+        router.push("/webpage?tab=masteraccount");
       }
+
     } catch (error: any) {
       console.error("Convert error:", error);
       alert(error.message || "Failed to convert");
     }
   };
+
 
 
 
@@ -524,9 +689,9 @@ export default function LeadDetailsPage({
           <button
             onClick={handleConvert}
             style={secondaryBtn}
-            disabled={finalOrigin === "MasterAccount"}
+            disabled={lead.AccountTypeName === "MasterAccount"}
           >
-            {finalOrigin === "MasterAccount"
+            {lead.AccountTypeName === "MasterAccount"
               ? "Already a Master Account"
               : getConvertLabel()}
           </button>
@@ -771,49 +936,80 @@ export default function LeadDetailsPage({
           </tbody>
         </table>
       </div>
-
       {/* -------------------- ADD ACTIVITY MODAL -------------------- */}
       {showAddActivity && (
         <div style={modalOverlay}>
           <div style={modalBox}>
+            {/* Header */}
             <div style={modalHeader}>Add Lead Activity</div>
 
+            {/* Body */}
             <div style={modalBody}>
               <label>Activity Type*</label>
-              <select style={inputBox}>
-                <option>Select Type</option>
-                <option>Call</option>
-                <option>Email</option>
-                <option>Meeting</option>
-                <option>Task</option>
-                <option>Note</option>
-                <option>Follow-up</option>
+              <select
+                style={inputBox}
+                value={activityForm.Mode}
+                onChange={(e) =>
+                  setActivityForm({ ...activityForm, Mode: e.target.value })
+                }
+              >
+                <option value="">-- Select Type --</option>
+                <option value="Call">Call</option>
+                <option value="Email">Email</option>
+                <option value="Meeting">Meeting</option>
+                <option value="Task">Task</option>
+                <option value="Note">Note</option>
+                <option value="Follow-up">Follow-up</option>
               </select>
 
               <label>Status*</label>
-              <select style={inputBox}>
-                <option>Select Status</option>
-                <option>New</option>
-                <option>Contacted</option>
-                <option>Follow-up</option>
-                <option>Qualified</option>
-                <option>Unqualified</option>
-                <option>Lost</option>
-                <option>Converted</option>
+              <select
+                style={inputBox}
+                value={activityForm.Status}
+                onChange={(e) =>
+                  setActivityForm({ ...activityForm, Status: e.target.value })
+                }
+              >
+                <option value="">-- Select Status --</option>
+                <option value="New">New</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Follow-up">Follow-up</option>
+                <option value="Qualified">Qualified</option>
+                <option value="Unqualified">Unqualified</option>
+                <option value="Lost">Lost</option>
+                <option value="Converted">Converted</option>
               </select>
 
               <label>Notes*</label>
-              <textarea style={{ ...inputBox, height: 40, width: 388 }} />
+              <textarea
+                style={{ ...inputBox, height: 60, width: 388 }}
+                value={activityForm.Notes}
+                onChange={(e) =>
+                  setActivityForm({ ...activityForm, Notes: e.target.value })
+                }
+              />
             </div>
 
+            {/* Footer */}
             <div style={modalFooter}>
               <button
                 style={cancelBtn}
-                onClick={() => setShowAddActivity(false)}
+                onClick={() => {
+                  setShowAddActivity(false);
+                  setActivityForm({
+                    ActivityDate: "",
+                    Mode: "",
+                    Status: "",
+                    Notes: "",
+                  });
+                }}
               >
                 Cancel
               </button>
-              <button style={saveBtn}>Save Activity</button>
+
+              <button style={saveBtn} onClick={handleSaveActivity}>
+                Save Activity
+              </button>
             </div>
           </div>
         </div>
@@ -823,44 +1019,96 @@ export default function LeadDetailsPage({
       {showAddReminder && (
         <div style={modalOverlay}>
           <div style={modalBox}>
+            {/* Header */}
             <div style={modalHeader}>Add Lead Reminder</div>
 
+            {/* Body */}
             <div style={modalBody}>
               <label>Reminder Date*</label>
-              <input type="date" style={{ ...inputBox, width: 388 }} />
+              <input
+                type="date"
+                style={{ ...inputBox, width: 388 }}
+                value={reminderForm.ReminderDate}
+                onChange={(e) =>
+                  setReminderForm({
+                    ...reminderForm,
+                    ReminderDate: e.target.value,
+                  })
+                }
+              />
 
               <label>Reminder Notes*</label>
-              <textarea style={{ ...inputBox, height: 80, width: 388 }} />
+              <textarea
+                style={{ ...inputBox, height: 80, width: 388 }}
+                value={reminderForm.Notes}
+                onChange={(e) =>
+                  setReminderForm({
+                    ...reminderForm,
+                    Notes: e.target.value,
+                  })
+                }
+              />
 
-              <label>Status</label>
-              <select style={inputBox}>
-                <option>-- Select Status --</option>
-                <option>Pending</option>
-                <option>Completed</option>
+              <label>Status*</label>
+              <select
+                style={inputBox}
+                value={reminderForm.Status}
+                onChange={(e) =>
+                  setReminderForm({
+                    ...reminderForm,
+                    Status: e.target.value,
+                  })
+                }
+              >
+                <option value="">-- Select Status --</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
               </select>
 
-              <label>Notification Channels</label>
-              <select style={inputBox}>
-                <option>- - Select NotificationChannel - -</option>
-                <option>Email</option>
-                <option>SMS</option>
-                <option>Email+SMS</option>
-                <option>None</option>
+              <label>Notification Channels*</label>
+              <select
+                style={inputBox}
+                value={reminderForm.Notification}
+                onChange={(e) =>
+                  setReminderForm({
+                    ...reminderForm,
+                    Notification: e.target.value,
+                  })
+                }
+              >
+                <option value="">-- Select Notification Channel --</option>
+                <option value="Email">Email</option>
+                <option value="SMS">SMS</option>
+                <option value="Email+SMS">Email + SMS</option>
+                <option value="None">None</option>
               </select>
             </div>
 
+            {/* Footer */}
             <div style={modalFooter}>
               <button
                 style={cancelBtn}
-                onClick={() => setShowAddReminder(false)}
+                onClick={() => {
+                  setShowAddReminder(false);
+                  setReminderForm({
+                    ReminderDate: "",
+                    Notes: "",
+                    Status: "",
+                    Notification: "",
+                  });
+                }}
               >
                 Cancel
               </button>
-              <button style={saveBtn}>Save Reminder</button>
+
+              <button style={saveBtn} onClick={handleSaveReminder}>
+                Save Reminder
+              </button>
             </div>
           </div>
         </div>
       )}
+
       {/* -------------------- ADD OPPORTUNITY MODAL -------------------- */}
       {showAddOpportunity && (
         <div style={modalOverlay}>

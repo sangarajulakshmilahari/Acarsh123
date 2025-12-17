@@ -266,22 +266,27 @@ export default function EditLeadPage({
 
   // ----------- render form populated from `lead` -----------
   return (
-    <div style={pageContainer}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
-          Edit Lead - {lead.CompanyName || "New"}
-        </h2>
-      </div>
-      <div style={titleBar} />
+    <div style={{ padding: 35, maxWidth: 1100, margin: "auto" }}>
+      <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 10 }}>
+        Edit Lead - {lead.CompanyName}
+      </h2>
+      <hr style={{ marginBottom: 20, border: "1px solid #3a77e3" }} />
 
       {/* Company Information */}
       <section style={cardStyle}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>Company Information</h3>
-        <div style={sectionDivider} />
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, borderBottom: "1px solid #e6e6e6", paddingBottom: 10 }}>
+          Company Information
+        </h3>
+
         <div style={rowStyle}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Company Name</label>
-            <input style={inputCommon} value={lead.CompanyName ?? ""} onChange={(e) => updateField("CompanyName", e.target.value)} placeholder="Company name" />
+            <input
+              className="form-control"
+              style={{}}
+              value={lead.CompanyName}
+              onChange={(e) => updateField("CompanyName", e.target.value)}
+            />
           </div>
 
           <div style={{ flex: 1 }}>
@@ -320,11 +325,11 @@ export default function EditLeadPage({
         </div>
       </section>
 
-      {/* Contacts */}
-      <section style={{ borderRadius: 8, marginBottom: 20, border: "1px solid #e9ecef", padding: 0, overflow: "hidden" }}>
-        <div style={{ padding: "14px 20px", background: "#fafafa", borderBottom: "1px solid #ececec" }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Contact Information</h3>
-        </div>
+      {/* ================= CONTACT INFORMATION ================= */}
+      <section style={cardStyle}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 25, borderBottom: "1px solid #e6e6e6", paddingBottom: 10 }}>
+          Contact Information
+        </h3>
 
         <div style={{ padding: 18 }}>
           {(lead.Contacts || []).map((c, i) => (

@@ -58,9 +58,17 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+  if (!form.ContactRoleName) {
+    alert("Please select Contact Role");
+    return;
+  }
+
+  console.log("Submitting lead data:", form);
+
 
     // NOTE: API is still /api/leads – you can later change for prospects/accounts if needed
-    const res = await fetch("/api/leads", {
+    const res = await fetch("/api/employees/leads", {
       method: "POST",
       body: JSON.stringify(form),
       headers: { "Content-Type": "application/json" },
