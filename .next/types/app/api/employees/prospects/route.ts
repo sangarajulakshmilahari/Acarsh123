@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // File: C:\Users\ADT-DSTP\Desktop\Project\Acarsh\app\api\employees\prospects\route.ts
+=======
+// File: C:\Users\ADT\Desktop\ACARSH\Acarsh\app\api\employees\prospects\route.ts
+>>>>>>> 33641eb24b85ad3dd576c1b4660d106ab3c9b93c
 import * as entry from '../../../../../../app/api/employees/prospects/route.js'
 import type { NextRequest } from 'next/server.js'
 

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import PopupModals,{PopupType} from "../../components/modals/PopupModals";
 
 type Contact = {
   ContactName?: string;
@@ -70,10 +69,150 @@ export default function LeadDetailsPage({
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // const [showAddActivity, setShowAddActivity] = useState(false);
-  // const [showAddReminder, setShowAddReminder] = useState(false);
-  // const [showAddOpportunity, setShowAddOpportunity] = useState(false);
-  const [activePopup, setActivePopup] = useState<PopupType>(null);
+  const [showAddActivity, setShowAddActivity] = useState(false);
+  const [showAddReminder, setShowAddReminder] = useState(false);
+  const [showAddOpportunity, setShowAddOpportunity] = useState(false);
+  // ---------------- FORM STATES ----------------
+
+const [activityForm, setActivityForm] = useState({
+  ActivityDate: "",
+  Mode: "",
+  Notes: "",
+  Status: "",
+});
+
+const [reminderForm, setReminderForm] = useState({
+  ReminderDate: "",
+  Notes: "",
+  Status: "Pending",
+  Notification: "",
+});
+
+const [opportunityForm, setOpportunityForm] = useState({
+  Service: "",
+  Probability: "",
+  Status: "",
+  EngagementModel: "",
+});
+const handleSaveActivity = async () => {
+  if (!activityForm.Mode || !activityForm.Status || !activityForm.Notes) {
+    alert("Please fill all required fields");
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `/api/employees/leads/${effectiveLeadId}/activities`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          Mode: activityForm.Mode,
+          Notes: activityForm.Notes,
+          Status: activityForm.Status,
+          ActivityDate: new Date().toISOString(),
+        }),
+      }
+    );
+
+    console.log("Activity save status:", res.status);
+
+    if (!res.ok) {
+      const err = await res.json();
+      console.error("API error:", err);
+      alert("Save failed");
+      return;
+    }
+
+    const savedActivity = await res.json();
+
+    // ✅ update UI
+    setLead((prev) =>
+      prev
+        ? {
+            ...prev,
+            Activities: [...(prev.Activities || []), savedActivity],
+          }
+        : prev
+    );
+
+    setShowAddActivity(false);
+  } catch (err) {
+    console.error("Frontend save error:", err);
+    alert("Unexpected error");
+  }
+};
+const handleSaveReminder = async () => {
+  if (!reminderForm.ReminderDate || !reminderForm.Notes) {
+    alert("Please fill required fields");
+    return;
+  }
+
+  const res = await fetch(
+    `/api/employees/leads/${effectiveLeadId}/reminders`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(reminderForm),
+    }
+  );
+
+  if (!res.ok) {
+    alert("Failed to save reminder");
+    return;
+  }
+
+  const savedReminder = await res.json();
+
+  setLead((prev) =>
+    prev
+      ? {
+          ...prev,
+          Reminders: [...(prev.Reminders || []), savedReminder],
+        }
+      : prev
+  );
+
+  setShowAddReminder(false);
+};
+const handleSaveOpportunity = async () => {
+  if (
+    !opportunityForm.Service ||
+    !opportunityForm.Status ||
+    !opportunityForm.Probability ||
+    !opportunityForm.EngagementModel
+  ) {
+    alert("Please fill all required fields");
+    return;
+  }
+
+  const res = await fetch(
+    `/api/employees/leads/${effectiveLeadId}/opportunities`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(opportunityForm),
+    }
+  );
+
+  if (!res.ok) {
+    alert("Failed to save opportunity");
+    return;
+  }
+
+  const saved = await res.json();
+
+  setLead((prev) =>
+    prev
+      ? {
+          ...prev,
+          Opportunities: [...(prev.Opportunities || []), saved],
+        }
+      : prev
+  );
+
+  setShowAddOpportunity(false);
+};
 
 
   // Take ID from props first, else from URL (?leadId=...)
@@ -415,7 +554,74 @@ export default function LeadDetailsPage({
     lineHeight: 0,
   };
 
-  
+  const modalOverlay: React.CSSProperties = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
+  };
+
+  const modalBox: React.CSSProperties = {
+    width: 450,
+    background: "#fff",
+    borderRadius: 8,
+    overflow: "hidden",
+  };
+
+  const modalHeader: React.CSSProperties = {
+    background: "#3a77e3",
+    color: "white",
+    padding: 15,
+    fontSize: 15,
+    fontWeight: "bold",
+  };
+
+  const modalBody: React.CSSProperties = {
+    padding: 20,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    fontSize:13
+  };
+
+  const modalFooter: React.CSSProperties = {
+    padding: 10,
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+  };
+
+  const inputBox: React.CSSProperties = {
+    width: "100%",
+    padding: "10px",
+    borderRadius: 4,
+    border: "1px solid #ccc",
+    fontSize: 12,
+  };
+
+  const cancelBtn: React.CSSProperties = {
+    padding: "8px 15px",
+    background: "#d1d1d1",
+    borderRadius: 4,
+    border: "none",
+    cursor: "pointer",
+  };
+
+  const saveBtn: React.CSSProperties = {
+    padding: "8px 15px",
+    background: "#3a77e3",
+    color: "#fff",
+    borderRadius: 4,
+    border: "none",
+    cursor: "pointer",
+  };
+
   // ---------- MAIN RENDER ----------
 
   return (
@@ -544,7 +750,7 @@ export default function LeadDetailsPage({
       {/* Activities */}
       <div style={{ ...sectionTitle, display: "flex", alignItems: "center" }}>
         Lead Activities
-        <button style={addBtn} onClick={() => setActivePopup("activity")}>
+        <button style={addBtn} onClick={() => setShowAddActivity(true)}>
           +
         </button>
       </div>
@@ -589,7 +795,7 @@ export default function LeadDetailsPage({
       {/* Reminders */}
       <div style={{ ...sectionTitle, display: "flex", alignItems: "center" }}>
         Lead Reminders
-        <button style={addBtn} onClick={() => setActivePopup("reminder")}>
+        <button style={addBtn} onClick={() => setShowAddReminder(true)}>
           +
         </button>
       </div>
@@ -632,7 +838,7 @@ export default function LeadDetailsPage({
       {/* Lead Opportunities */}
       <div style={{ ...sectionTitle, display: "flex", alignItems: "center" }}>
         Lead Opportunities
-        <button style={addBtn} onClick={() => setActivePopup("opportunity")}>
+        <button style={addBtn} onClick={() => setShowAddOpportunity(true)}>
           +
         </button>
       </div>
@@ -676,11 +882,371 @@ export default function LeadDetailsPage({
           </tbody>
         </table>
       </div>
-      <PopupModals
-  type={activePopup}
-  onClose={() => setActivePopup(null)}
-/>
+{/* -------------------- ADD ACTIVITY MODAL -------------------- */}
+{showAddActivity && (
+  <div style={modalOverlay}>
+    <div style={modalBox}>
+      {/* Header */}
+      <div style={modalHeader}>Add Lead Activity</div>
 
+      {/* Body */}
+      <div style={modalBody}>
+        <label>Activity Type*</label>
+        <select
+          style={inputBox}
+          value={activityForm.Mode}
+          onChange={(e) =>
+            setActivityForm({ ...activityForm, Mode: e.target.value })
+          }
+        >
+          <option value="">-- Select Type --</option>
+          <option value="Call">Call</option>
+          <option value="Email">Email</option>
+          <option value="Meeting">Meeting</option>
+          <option value="Task">Task</option>
+          <option value="Note">Note</option>
+          <option value="Follow-up">Follow-up</option>
+        </select>
+
+        <label>Status*</label>
+        <select
+          style={inputBox}
+          value={activityForm.Status}
+          onChange={(e) =>
+            setActivityForm({ ...activityForm, Status: e.target.value })
+          }
+        >
+          <option value="">-- Select Status --</option>
+          <option value="New">New</option>
+          <option value="Contacted">Contacted</option>
+          <option value="Follow-up">Follow-up</option>
+          <option value="Qualified">Qualified</option>
+          <option value="Unqualified">Unqualified</option>
+          <option value="Lost">Lost</option>
+          <option value="Converted">Converted</option>
+        </select>
+
+        <label>Notes*</label>
+        <textarea
+          style={{ ...inputBox, height: 60, width: 388 }}
+          value={activityForm.Notes}
+          onChange={(e) =>
+            setActivityForm({ ...activityForm, Notes: e.target.value })
+          }
+        />
+      </div>
+
+      {/* Footer */}
+      <div style={modalFooter}>
+        <button
+          style={cancelBtn}
+          onClick={() => {
+            setShowAddActivity(false);
+            setActivityForm({
+              ActivityDate: "",
+              Mode: "",
+              Status: "",
+              Notes: "",
+            });
+          }}
+        >
+          Cancel
+        </button>
+
+        <button style={saveBtn} onClick={handleSaveActivity}>
+          Save Activity
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+      {/* -------------------- ADD REMINDER MODAL -------------------- */}
+{showAddReminder && (
+  <div style={modalOverlay}>
+    <div style={modalBox}>
+      {/* Header */}
+      <div style={modalHeader}>Add Lead Reminder</div>
+
+      {/* Body */}
+      <div style={modalBody}>
+        <label>Reminder Date*</label>
+        <input
+          type="date"
+          style={{ ...inputBox, width: 388 }}
+          value={reminderForm.ReminderDate}
+          onChange={(e) =>
+            setReminderForm({
+              ...reminderForm,
+              ReminderDate: e.target.value,
+            })
+          }
+        />
+
+        <label>Reminder Notes*</label>
+        <textarea
+          style={{ ...inputBox, height: 80, width: 388 }}
+          value={reminderForm.Notes}
+          onChange={(e) =>
+            setReminderForm({
+              ...reminderForm,
+              Notes: e.target.value,
+            })
+          }
+        />
+
+        <label>Status*</label>
+        <select
+          style={inputBox}
+          value={reminderForm.Status}
+          onChange={(e) =>
+            setReminderForm({
+              ...reminderForm,
+              Status: e.target.value,
+            })
+          }
+        >
+          <option value="">-- Select Status --</option>
+          <option value="Pending">Pending</option>
+          <option value="Completed">Completed</option>
+        </select>
+
+        <label>Notification Channels*</label>
+        <select
+          style={inputBox}
+          value={reminderForm.Notification}
+          onChange={(e) =>
+            setReminderForm({
+              ...reminderForm,
+              Notification: e.target.value,
+            })
+          }
+        >
+          <option value="">-- Select Notification Channel --</option>
+          <option value="Email">Email</option>
+          <option value="SMS">SMS</option>
+          <option value="Email+SMS">Email + SMS</option>
+          <option value="None">None</option>
+        </select>
+      </div>
+
+      {/* Footer */}
+      <div style={modalFooter}>
+        <button
+          style={cancelBtn}
+          onClick={() => {
+            setShowAddReminder(false);
+            setReminderForm({
+              ReminderDate: "",
+              Notes: "",
+              Status: "",
+              Notification: "",
+            });
+          }}
+        >
+          Cancel
+        </button>
+
+        <button style={saveBtn} onClick={handleSaveReminder}>
+          Save Reminder
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+      {/* -------------------- ADD OPPORTUNITY MODAL -------------------- */}
+      {showAddOpportunity && (
+        <div style={modalOverlay}>
+          <div style={{ ...modalBox, width: "85%", maxWidth: 1100 }}>
+            <div
+              style={{
+                ...modalHeader,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span>Add Lead Opportunity</span>
+              <span
+                style={{ cursor: "pointer", fontSize: 22 }}
+                onClick={() => setShowAddOpportunity(false)}
+              >
+                ✕
+              </span>
+            </div>
+
+            <div style={modalBody}>
+              {/* SERVICE + STATUS */}
+              <div style={{ display: "flex", gap: 20 }}>
+                <div style={{ flex: 1 }}>
+                  <label>Service *</label>
+                  <select style={inputBox}>
+                    <option>- - Select Service - -</option>
+                    <option>AI</option>
+                    <option>Cloud</option>
+                    <option>Data Engineering</option>
+                    <option>DevOps</option>
+                    <option>Staff Augmentation</option>
+                  </select>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <label>Status *</label>
+                  <select style={inputBox}>
+                    <option>- - Select Status - -</option>
+                    <option>Engagement Model Identified</option>
+                    <option>Proposal Sent</option>
+                    <option>Negotiation</option>
+                    <option>Closed Won</option>
+                    <option>Closed Lost</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* PROBABILITY + ENGAGEMENT MODEL */}
+              <div style={{ display: "flex", gap: 20 }}>
+                {/* Probability */}
+                <div style={{ flex: 1 }}>
+                  <label>Probability*</label>
+                  <div
+                    style={{
+                      border: "1px solid #ccc",
+                      borderRadius: 6,
+                      padding: 12,
+                      marginTop: 6,
+                    }}
+                  >
+                    <div>
+                      <input type="radio" name="prob" /> &nbsp; &lt;25%
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      <input type="radio" name="prob" /> &nbsp; 50%
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      <input type="radio" name="prob" /> &nbsp; 75%
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      <input type="radio" name="prob" /> &nbsp; 90%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Engagement Model */}
+                <div style={{ flex: 1 }}>
+                  <label>Engagement Model*</label>
+                  <select style={inputBox}>
+                    <option>- - Select Engagement Model - -</option>
+                    <option>Competence Center (ODC)</option>
+                    <option>Time & Material</option>
+                    <option>Fixed Bid</option>
+                    <option>Retainer</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* TECHNOLOGY */}
+              <label style={{ marginTop: 10 }}>Technology*</label>
+
+              <div
+                style={{
+                  border: "1px solid #ccc",
+                  padding: 20,
+                  borderRadius: 6,
+                }}
+              >
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  {/* DEVELOPMENT STACK */}
+                  <div>
+                    <b>Development Stack</b>
+                    <div>
+                      <input type="checkbox" /> &nbsp; LAMP
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; MEAN
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; MERN
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Java Spring
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; .NET Stack
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Other
+                    </div>
+                  </div>
+
+                  {/* CLOUD PLATFORMS */}
+                  <div>
+                    <b>Cloud Computing Platforms</b>
+                    <div>
+                      <input type="checkbox" /> &nbsp; AWS
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Azure
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Google Cloud Platform
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; IBM Cloud
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Oracle Cloud
+                      Infrastructure
+                    </div>
+                  </div>
+
+                  {/* DATABASE TECHNOLOGIES */}
+                  <div>
+                    <b>Database Technologies</b>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Oracle Database
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; SQL Server
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; MySQL
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; PostgreSQL
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; MongoDB
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Cassandra
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Snowflake
+                    </div>
+                    <div>
+                      <input type="checkbox" /> &nbsp; Amazon Redshift
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* FOOTER */}
+            <div style={modalFooter}>
+              <button
+                style={cancelBtn}
+                onClick={() => setShowAddOpportunity(false)}
+              >
+                Cancel
+              </button>
+              <button style={saveBtn}>Save Opportunity</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

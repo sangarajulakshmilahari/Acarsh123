@@ -73,3 +73,153 @@ export async function GET() {
     );
   }
 }
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+
+    const {
+      CompanyName,
+      CompanyLocation,
+      LeadSource,
+      LeadDate,
+      StatusName,
+      OwnerName,
+      Notes,
+      ContactName,
+      ContactEmail,
+      ContactPhone,
+      ContactTitle,
+      ContactRoleName,
+      AddReminder
+    } = body;
+
+    const pool = await getPool();
+
+    // 1. Get StatusId
+    const statusResult = await pool
+      .request()
+      .input("StatusName", StatusName)
+      .query(`SELECT StatusId FROM LeadStatuses WHERE StatusName = @StatusName`);
+
+    const StatusId = statusResult.recordset[0]?.StatusId || 1;
+
+    // 2. Get OwnerId
+    const ownerResult = await pool
+      .request()
+      .input("OwnerName", OwnerName)
+      .query(`SELECT UserId FROM dbo.Users WHERE UserName = @OwnerName`);
+
+    const OwnerId = ownerResult.recordset[0]?.UserId || null;
+
+    // 3. Insert Lead
+    const leadInsert = await pool
+      .request()
+      .input("CompanyName", CompanyName)
+      .input("CompanyLocation", CompanyLocation)
+      .input("LeadSource", LeadSource)
+      .input("LeadDate", LeadDate)
+      .input("LeadNotes", Notes)
+      .input("StatusId", StatusId)
+      .input("OwnerId", OwnerId)
+      .query(
+        `INSERT INTO Leads 
+          (CompanyName, CompanyLocation, LeadSource, LeadDate, LeadNotes, StatusId, OwnerId)
+        OUTPUT INSERTED.LeadId
+        VALUES (@CompanyName, @CompanyLocation, @LeadSource, @LeadDate, @LeadNotes, @StatusId, @OwnerId)`
+      );
+
+    const LeadId = leadInsert.recordset[0].LeadId;
+
+    // ---- INSERT CONTACT (STRICT) ----
+if (ContactName || ContactEmail || ContactPhone) {
+
+  if (!ContactRoleName) {
+    return NextResponse.json(
+      { error: "Contact role is required" },
+      { status: 400 }
+    );
+  }
+
+  const roleResult = await pool
+    .request()
+    .input("Role", ContactRoleName)
+    .query(`
+      SELECT RoleId 
+      FROM ContactRoles 
+      WHERE Role = @Role
+    `);
+
+  if (!roleResult.recordset.length) {
+    return NextResponse.json(
+      { error: "Invalid Contact Role" },
+      { status: 400 }
+    );
+  }
+
+  const ContactRoleId = roleResult.recordset[0].RoleId;
+
+  await pool
+    .request()
+    .input("LeadId", LeadId)
+    .input("ContactName", ContactName)
+    .input("ContactEmail", ContactEmail)
+    .input("ContactPhone", ContactPhone)
+    .input("ContactTitle", ContactTitle)
+    .input("ContactRoleId", ContactRoleId)
+    .query(`
+      INSERT INTO LeadContacts
+      (LeadId, ContactName, ContactEmail, ContactPhone, ContactTitle, ContactRoleId)
+      VALUES
+      (@LeadId, @ContactName, @ContactEmail, @ContactPhone, @ContactTitle, @ContactRoleId)
+    `);
+}
+
+    // 5. Optional Reminder
+    if (AddReminder) {
+      await pool.request().input("LeadId", LeadId).query(`
+        INSERT INTO Reminders (LeadId, ReminderDate)
+        VALUES (@LeadId, GETDATE())
+      `);
+    }
+
+    return NextResponse.json(
+      { message: "Lead created successfully", LeadId },
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("Error creating lead:", err);
+    return NextResponse.json(
+      { error: "Failed to create lead", details: err.message },
+      { status: 500 }
+    );
+  }
+}
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const leadId = searchParams.get("leadId");
+
+    if (!leadId) {
+      return NextResponse.json(
+        { error: "LeadId is required" },
+        { status: 400 }
+      );
+    }
+
+    const pool = await getPool();
+
+    // IMPORTANT: delete child records first
+    await pool.request().input("LeadId", leadId).query(`
+      DELETE FROM LeadContacts WHERE LeadId = @LeadId;
+      DELETE FROM Leads WHERE LeadId = @LeadId;
+    `);
+
+    return NextResponse.json({ message: "Lead deleted successfully" });
+  } catch (err) {
+    console.error("Delete lead error:", err);
+    return NextResponse.json(
+      { error: "Failed to delete lead" },
+      { status: 500 }
+    );
+  }
+}
