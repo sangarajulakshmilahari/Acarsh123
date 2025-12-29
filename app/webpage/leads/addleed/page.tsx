@@ -16,7 +16,6 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
     LeadSource: "",
     LeadDate: "",
     StatusName: "New",
-    AccountType: "",
     OwnerName: "",
 
     // Lead / Prospect / Account Details
@@ -66,9 +65,12 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
 
   console.log("Submitting lead data:", form);
 
+    // Determine the API endpoint based on type
+    let endpoint = "/api/employees/leads";
+    if (type === "prospect") endpoint = "/api/employees/prospects";
+    else if (type === "account") endpoint = "/api/employees/account";
 
-    // NOTE: API is still /api/leads – you can later change for prospects/accounts if needed
-    const res = await fetch("/api/employees/leads", {
+    const res = await fetch(endpoint, {
       method: "POST",
       body: JSON.stringify(form),
       headers: { "Content-Type": "application/json" },
@@ -205,17 +207,6 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
               </div>
 
               <div>
-                <label style={labelStyle}>Account Type</label>
-                <input
-                  type="text"
-                  name="AccountType"
-                  style={inputStyle}
-                  value={form.AccountType}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
                 <label style={labelStyle}>
                   Lead Owner <span style={{ color: "#ef4444" }}>*</span>
                 </label>
@@ -226,9 +217,9 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                   style={inputStyle}
                 >
                   <option value="">Select Lead Owner</option>
-                  <option value="Ramesh">Ramesh</option>
-                  <option value="Suresh">Suresh</option>
-                  <option value="Anitha">Anitha</option>
+                  <option value="Partha Bommireddy (BP)">Partha Bommireddy (BP)</option>
+                  <option value="Mahesh Kukutlawar">Mahesh Kukutlawar</option>
+                  <option value="Sriram Cherukuvada">Sriram Cherukuvada</option>
                 </select>
               </div>
             </div>
@@ -332,9 +323,9 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                 >
                   <option value="">Select role...</option>
                   <option value="Decision Maker">Decision Maker</option>
-                  <option value="Technical Lead">Technical Lead</option>
-                  <option value="Procurement">Procurement</option>
-                  <option value="Finance">Finance</option>
+                  <option value="Influencer">Influencer</option>
+                  <option value="Initiator">Initiator</option>
+                  <option value="End User">End User</option>
                 </select>
               </div>
 

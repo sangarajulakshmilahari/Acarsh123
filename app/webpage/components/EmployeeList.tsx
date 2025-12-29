@@ -13,16 +13,13 @@ export type Contact = {
 
 export type Employee = {
   LeadId: number | string;
-
   CompanyName: string;
   CompanyLocation: string;
   LeadSource: string;
   LeadDate: string | number | Date;
   LeadNotes: string | null;
-
   StatusName: string | null;
   OwnerName: string | null;
-
   Contacts: Contact[];
 };
 
@@ -99,7 +96,7 @@ export default function EmployeeList({
   }, [employeesList, query]);
 
   if (error) return <div style={{ color: "red" }}>Error: {error}</div>;
-  if (employeesList.length === 0) return <div>No leads found.</div>;
+  // if (employeesList.length === 0) return <div>No leads found.</div>;
 
   const baseFontStyles: React.CSSProperties = {
     fontFamily: "Open Sans, sans-serif",
@@ -207,16 +204,16 @@ export default function EmployeeList({
             lineHeight: 1.35,
             letterSpacing: "0.2px",
             borderStyle: "solid",
-            borderWidth: 0, 
+            borderWidth: 0,
           }}
         >
           <thead>
             <tr>
-              <th style={{...thStyle,width:180}}>Company</th>
-              <th style={{...thStyle,width:200}}>Contacts</th>
+              <th style={{ ...thStyle, width: 180 }}>Company</th>
+              <th style={{ ...thStyle, width: 200 }}>Contacts</th>
               <th style={{ ...thStyle, width: 380 }}>Source</th>
               <th style={thStyle}>Status</th>
-              <th style={{...thStyle,width:20}}>Info</th>
+              <th style={{ ...thStyle, width: 20 }}>Info</th>
               <th style={{ ...thStyle, width: 150 }}>Owner</th>
               <th style={thStyle}>Actions</th>
             </tr>
@@ -230,7 +227,13 @@ export default function EmployeeList({
               };
 
               return (
-                <tr key={emp.LeadId as React.Key} style={rowStyle}>
+                <tr
+                  key={emp.LeadId}
+                  onDoubleClick={() => onOpenLeadDetails?.(emp.LeadId)}
+                  style={{
+                    cursor: "pointer",
+                  }}
+                >
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
                     <div
                       style={{
@@ -271,7 +274,7 @@ export default function EmployeeList({
                         <div
                           key={index}
                           style={{
-                            padding: "2px 0", 
+                            padding: "2px 0",
                             // paddingTop: index === 0 ? 0 : 6,
                             // paddingBottom:
                             //   index === emp.Contacts.length - 1 ? 0 : 6,
@@ -279,23 +282,19 @@ export default function EmployeeList({
                               index !== emp.Contacts.length - 1
                                 ? "0.5px solid #e0e0e0"
                                 : "none",
-                            width:"100%",
+                            width: "100%",
                             margin: 0,
                             display: "block",
                           }}
                         >
                           <div
-                            onDoubleClick={() =>
-                              onOpenLeadDetails?.(emp.LeadId)
-                            }
                             title="Double click to open details"
                             style={{
                               fontWeight: 700,
                               color: "#212529",
-                              cursor: "pointer",
                               fontSize: "inherit",
                               lineHeight: "inherit",
-                              marginBottom: 0
+                              marginBottom: 0,
                             }}
                           >
                             {c.ContactName || "—"}
@@ -411,7 +410,7 @@ export default function EmployeeList({
                   </td>
 
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div style={{ color: "#212529" ,fontSize:"9.88px"}}>
+                    <div style={{ color: "#212529", fontSize: "9.88px" }}>
                       {emp.LeadSource || "—"}
                     </div>
                   </td>
@@ -457,7 +456,7 @@ export default function EmployeeList({
                         }}
                         title={emp.LeadNotes} // <--- full text on hover
                       >
-                        <span style={{ fontWeight: 700}}>Notes: </span>
+                        <span style={{ fontWeight: 700 }}>Notes: </span>
                         {emp.LeadNotes}
                       </div>
                     )}
@@ -470,6 +469,7 @@ export default function EmployeeList({
                   </td>
 
                   <td
+                    onDoubleClick={(e) => e.stopPropagation()}
                     style={{
                       ...tdStyle,
                       textAlign: "center",
@@ -478,7 +478,10 @@ export default function EmployeeList({
                     }}
                   >
                     <button
-                      onClick={() => onDelete && onDelete(emp.LeadId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete && onDelete(emp.LeadId);
+                      }}
                       style={{
                         background: "transparent",
                         border: "none",

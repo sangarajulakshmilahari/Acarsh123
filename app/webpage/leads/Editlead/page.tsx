@@ -100,8 +100,9 @@ export default function EditLeadPage({
         if (res.ok) {
           const data = await res.json();
           if (!cancelled) {
-            setLead(normalizeLead(data));
-            setOriginalLead(normalizeLead(data));
+            const normalized = normalizeLead(data);
+            setLead(normalized);
+            setOriginalLead(JSON.parse(JSON.stringify(normalized)));
           }
         } else {
           // fallback to fetching all and finding by ID
@@ -111,15 +112,16 @@ export default function EditLeadPage({
           const array = Array.isArray(allData)
             ? allData
             : allData?.data && Array.isArray(allData.data)
-              ? allData.data
-              : [];
+            ? allData.data
+            : [];
           const found = array.find(
             (x: any) => String(x.LeadId) === String(effectiveLeadId)
           );
           if (!found) throw new Error("Lead not found");
           if (!cancelled) {
-            setLead(normalizeLead(found));
-            setOriginalLead(normalizeLead(found));
+            const normalized = normalizeLead(found);
+            setLead(normalized);
+            setOriginalLead(JSON.parse(JSON.stringify(normalized)));
           }
         }
       } catch (err: any) {
@@ -146,7 +148,9 @@ export default function EditLeadPage({
       LeadDate: data?.LeadDate ?? data?.Date ?? "",
       OwnerName: data?.OwnerName ?? data?.Owner ?? "",
       StatusName: data?.StatusName ?? data?.Status ?? "New",
-      Contacts: Array.isArray(data?.Contacts) ? data.Contacts : data?.contacts ?? [],
+      Contacts: Array.isArray(data?.Contacts)
+        ? data.Contacts
+        : data?.contacts ?? [],
       LeadNotes: data?.LeadNotes ?? data?.Notes ?? "",
       ExpansionAreas: data?.ExpansionAreas ?? "",
       Tags: data?.Tags ?? "",
@@ -209,7 +213,9 @@ export default function EditLeadPage({
     try {
       const hasId = !!(effectiveLeadId ?? lead.LeadId);
       const url = hasId
-        ? `/api/employees/leads/${encodeURIComponent(String(effectiveLeadId ?? lead.LeadId))}`
+        ? `/api/employees/leads/${encodeURIComponent(
+            String(effectiveLeadId ?? lead.LeadId)
+          )}`
         : `/api/employees/leads`;
       const method = hasId ? "PUT" : "POST";
 
@@ -246,7 +252,9 @@ export default function EditLeadPage({
     return (
       <div style={{ padding: 20 }}>
         <div style={{ marginBottom: 12, color: "red" }}>{error}</div>
-        <button onClick={() => (onBack ? onBack() : router.back())}>Back</button>
+        <button onClick={() => (onBack ? onBack() : router.back())}>
+          Back
+        </button>
       </div>
     );
 
@@ -256,13 +264,53 @@ export default function EditLeadPage({
     maxWidth: 1200,
     margin: "auto",
   };
-  const titleBar: React.CSSProperties = { height: 3, background: "#0b67d1", width: "100%", marginTop: 8, marginBottom: 22, borderRadius: 2 };
-  const cardStyle: React.CSSProperties = { background: "#fff", padding: 22, borderRadius: 8, marginBottom: 20, border: "1px solid #e3e6e8", boxShadow: "0 0 0 1px rgba(0,0,0,0.01)" };
-  const sectionDivider: React.CSSProperties = { height: 1, background: "#e6e6e6", margin: "8px 0 18px 0" };
-  const labelStyle: React.CSSProperties = { fontWeight: 600, marginBottom: 6, display: "block", color: "#444", fontSize: 13 };
-  const rowStyle: React.CSSProperties = { display: "flex", gap: 20, marginBottom: 14, alignItems: "flex-start" };
-  const inputCommon: React.CSSProperties = { width: "100%", padding: "12px 14px", borderRadius: 6, border: "1px solid #d9d9d9", boxSizing: "border-box", fontSize: 14, background: "#fff" };
-  const selectCommon: React.CSSProperties = { ...inputCommon, appearance: "none" };
+  const titleBar: React.CSSProperties = {
+    height: 3,
+    background: "#0b67d1",
+    width: "100%",
+    marginTop: 8,
+    marginBottom: 22,
+    borderRadius: 2,
+  };
+  const cardStyle: React.CSSProperties = {
+    background: "#fff",
+    padding: 22,
+    borderRadius: 8,
+    marginBottom: 20,
+    border: "1px solid #e3e6e8",
+    boxShadow: "0 0 0 1px rgba(0,0,0,0.01)",
+  };
+  const sectionDivider: React.CSSProperties = {
+    height: 1,
+    background: "#e6e6e6",
+    margin: "8px 0 18px 0",
+  };
+  const labelStyle: React.CSSProperties = {
+    fontWeight: 600,
+    marginBottom: 6,
+    display: "block",
+    color: "#444",
+    fontSize: 13,
+  };
+  const rowStyle: React.CSSProperties = {
+    display: "flex",
+    gap: 20,
+    marginBottom: 14,
+    alignItems: "flex-start",
+  };
+  const inputCommon: React.CSSProperties = {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 6,
+    border: "1px solid #d9d9d9",
+    boxSizing: "border-box",
+    fontSize: 14,
+    background: "#fff",
+  };
+  const selectCommon: React.CSSProperties = {
+    ...inputCommon,
+    appearance: "none",
+  };
 
   // ----------- render form populated from `lead` -----------
   return (
@@ -274,7 +322,15 @@ export default function EditLeadPage({
 
       {/* Company Information */}
       <section style={cardStyle}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, borderBottom: "1px solid #e6e6e6", paddingBottom: 10 }}>
+        <h3
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            marginBottom: 10,
+            borderBottom: "1px solid #e6e6e6",
+            paddingBottom: 10,
+          }}
+        >
           Company Information
         </h3>
 
@@ -282,8 +338,7 @@ export default function EditLeadPage({
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Company Name</label>
             <input
-              className="form-control"
-              style={{}}
+              style={inputCommon}
               value={lead.CompanyName}
               onChange={(e) => updateField("CompanyName", e.target.value)}
             />
@@ -291,35 +346,65 @@ export default function EditLeadPage({
 
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Location</label>
-            <input style={inputCommon} value={lead.CompanyLocation ?? ""} onChange={(e) => updateField("CompanyLocation", e.target.value)} placeholder="Location" />
+            <input
+              style={inputCommon}
+              value={lead.CompanyLocation ?? ""}
+              onChange={(e) => updateField("CompanyLocation", e.target.value)}
+              placeholder="Location"
+            />
           </div>
         </div>
 
         <div style={rowStyle}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Lead Source</label>
-            <input style={inputCommon} value={lead.LeadSource ?? ""} onChange={(e) => updateField("LeadSource", e.target.value)} placeholder="Lead source" />
+            <input
+              style={inputCommon}
+              value={lead.LeadSource ?? ""}
+              onChange={(e) => updateField("LeadSource", e.target.value)}
+              placeholder="Lead source"
+            />
           </div>
 
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Lead Date</label>
-            <input type="date" style={inputCommon} value={lead.LeadDate ? String(lead.LeadDate).substring(0, 10) : ""} onChange={(e) => updateField("LeadDate", e.target.value)} />
+            <input
+              type="date"
+              style={inputCommon}
+              value={
+                lead.LeadDate ? String(lead.LeadDate).substring(0, 10) : ""
+              }
+              onChange={(e) => updateField("LeadDate", e.target.value)}
+            />
           </div>
         </div>
 
         <div style={rowStyle}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Owner</label>
-            <input style={inputCommon} value={lead.OwnerName ?? ""} onChange={(e) => updateField("OwnerName", e.target.value)} placeholder="Owner" />
+            <input
+              style={inputCommon}
+              value={lead.OwnerName ?? ""}
+              onChange={(e) => updateField("OwnerName", e.target.value)}
+              placeholder="Owner"
+            />
           </div>
 
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Status</label>
-            <select style={selectCommon} value={lead.StatusName ?? "New"} onChange={(e) => updateField("StatusName", e.target.value)}>
+            <select
+              style={selectCommon}
+              value={lead.StatusName ?? "New"}
+              onChange={(e) => updateField("StatusName", e.target.value)}
+            >
               <option>New</option>
               <option>Contacted</option>
+              <option>Follow-up</option>
               <option>Qualified</option>
+              <option>Unqualified</option>
               <option>Proposal Sent</option>
+              <option>Lost</option>
+              <option>Converted</option>
             </select>
           </div>
         </div>
@@ -327,15 +412,49 @@ export default function EditLeadPage({
 
       {/* ================= CONTACT INFORMATION ================= */}
       <section style={cardStyle}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 25, borderBottom: "1px solid #e6e6e6", paddingBottom: 10 }}>
+        <h3
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            marginBottom: 25,
+            borderBottom: "1px solid #e6e6e6",
+            paddingBottom: 10,
+          }}
+        >
           Contact Information
         </h3>
 
         <div style={{ padding: 18 }}>
           {(lead.Contacts || []).map((c, i) => (
-            <div key={i} style={{ background: "#ffffff", border: "1px solid #edeff1", borderRadius: 6, padding: 16, marginBottom: 16, position: "relative" }}>
+            <div
+              key={i}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #edeff1",
+                borderRadius: 6,
+                padding: 16,
+                marginBottom: 16,
+                position: "relative",
+              }}
+            >
               {(lead.Contacts || []).length > 0 && (
-                <button onClick={() => removeContact(i)} style={{ position: "absolute", right: 14, top: 14, background: "#ff1f6b", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 18, cursor: "pointer", fontSize: 13, fontWeight: 700 }} aria-label={`Remove contact ${i + 1}`}>
+                <button
+                  onClick={() => removeContact(i)}
+                  style={{
+                    position: "absolute",
+                    right: 14,
+                    top: 14,
+                    background: "#ff1f6b",
+                    color: "#fff",
+                    border: "none",
+                    padding: "6px 12px",
+                    borderRadius: 18,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                  aria-label={`Remove contact ${i + 1}`}
+                >
                   Remove
                 </button>
               )}
@@ -347,30 +466,70 @@ export default function EditLeadPage({
               <div style={{ display: "flex", gap: 20, marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ ...labelStyle, fontWeight: 600 }}>Name</label>
-                  <input style={inputCommon} value={c?.ContactName ?? ""} onChange={(e) => updateContact(i, "ContactName", e.target.value)} placeholder="Full name" />
+                  <input
+                    style={inputCommon}
+                    value={c?.ContactName ?? ""}
+                    onChange={(e) =>
+                      updateContact(i, "ContactName", e.target.value)
+                    }
+                    placeholder="Full name"
+                  />
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <label style={{ ...labelStyle, fontWeight: 600 }}>Title</label>
-                  <input style={inputCommon} value={c?.ContactTitle ?? ""} onChange={(e) => updateContact(i, "ContactTitle", e.target.value)} placeholder="Job title" />
+                  <label style={{ ...labelStyle, fontWeight: 600 }}>
+                    Title
+                  </label>
+                  <input
+                    style={inputCommon}
+                    value={c?.ContactTitle ?? ""}
+                    onChange={(e) =>
+                      updateContact(i, "ContactTitle", e.target.value)
+                    }
+                    placeholder="Job title"
+                  />
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: 20, marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ ...labelStyle, fontWeight: 600 }}>Email</label>
-                  <input style={inputCommon} value={c?.ContactEmail ?? ""} onChange={(e) => updateContact(i, "ContactEmail", e.target.value)} placeholder="email@example.com" />
+                  <label style={{ ...labelStyle, fontWeight: 600 }}>
+                    Email
+                  </label>
+                  <input
+                    style={inputCommon}
+                    value={c?.ContactEmail ?? ""}
+                    onChange={(e) =>
+                      updateContact(i, "ContactEmail", e.target.value)
+                    }
+                    placeholder="email@example.com"
+                  />
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <label style={{ ...labelStyle, fontWeight: 600 }}>Phone</label>
-                  <input style={inputCommon} value={c?.ContactPhone ?? ""} onChange={(e) => updateContact(i, "ContactPhone", e.target.value)} placeholder="Enter phone number" />
+                  <label style={{ ...labelStyle, fontWeight: 600 }}>
+                    Phone
+                  </label>
+                  <input
+                    style={inputCommon}
+                    value={c?.ContactPhone ?? ""}
+                    onChange={(e) =>
+                      updateContact(i, "ContactPhone", e.target.value)
+                    }
+                    placeholder="Enter phone number"
+                  />
                 </div>
               </div>
 
               <div style={{ marginTop: 6 }}>
                 <label style={{ ...labelStyle, fontWeight: 600 }}>Role</label>
-                <select style={{ ...selectCommon, padding: "12px 14px" }} value={c?.ContactRoleName ?? "Decision Maker"} onChange={(e) => updateContact(i, "ContactRoleName", e.target.value)}>
+                <select
+                  style={{ ...selectCommon, padding: "12px 14px" }}
+                  value={c?.ContactRoleName ?? "Decision Maker"}
+                  onChange={(e) =>
+                    updateContact(i, "ContactRoleName", e.target.value)
+                  }
+                >
                   <option>Decision Maker</option>
                   <option>Influencer</option>
                   <option>Technical</option>
@@ -381,7 +540,18 @@ export default function EditLeadPage({
           ))}
 
           <div style={{ marginTop: 6 }}>
-            <button onClick={addContact} style={{ padding: "8px 12px", background: "#007bff", border: "none", color: "#fff", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
+            <button
+              onClick={addContact}
+              style={{
+                padding: "8px 12px",
+                background: "#007bff",
+                border: "none",
+                color: "#fff",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
               + Add Another Contact
             </button>
           </div>
@@ -389,42 +559,144 @@ export default function EditLeadPage({
       </section>
 
       {/* Additional Information */}
-      <section style={{ borderRadius: 8, marginBottom: 20, border: "1px solid #e9ecef", overflow: "hidden" }}>
-        <div style={{ padding: "14px 20px", background: "#fafafa", borderBottom: "1px solid #ececec" }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Additional Information</h3>
+      <section
+        style={{
+          borderRadius: 8,
+          marginBottom: 20,
+          border: "1px solid #e9ecef",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: "14px 20px",
+            background: "#fafafa",
+            borderBottom: "1px solid #ececec",
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+            Additional Information
+          </h3>
         </div>
 
         <div style={{ padding: 18 }}>
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Notes</label>
-            <textarea style={{ width: "100%", minHeight: 86, padding: "12px 14px", borderRadius: 6, border: "1px solid #e0e3e6", resize: "vertical", fontSize: 14, boxSizing: "border-box", background: "#fff" }} value={lead.LeadNotes ?? ""} onChange={(e) => updateField("LeadNotes", e.target.value)} placeholder="Notes" />
+            <textarea
+              style={{
+                width: "100%",
+                minHeight: 86,
+                padding: "12px 14px",
+                borderRadius: 6,
+                border: "1px solid #e0e3e6",
+                resize: "vertical",
+                fontSize: 14,
+                boxSizing: "border-box",
+                background: "#fff",
+              }}
+              value={lead.LeadNotes ?? ""}
+              onChange={(e) => updateField("LeadNotes", e.target.value)}
+              placeholder="Notes"
+            />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Expansion Areas</label>
-            <input style={{ ...inputCommon, border: "1px solid #e0e3e6", background: "#fff" }} value={lead.ExpansionAreas ?? ""} onChange={(e) => updateField("ExpansionAreas", e.target.value)} placeholder="Enter expansion areas" />
+            <input
+              style={{
+                ...inputCommon,
+                border: "1px solid #e0e3e6",
+                background: "#fff",
+              }}
+              value={lead.ExpansionAreas ?? ""}
+              onChange={(e) => updateField("ExpansionAreas", e.target.value)}
+              placeholder="Enter expansion areas"
+            />
           </div>
 
           <div>
             <label style={labelStyle}>Tags</label>
-            <input style={{ ...inputCommon, border: "1px solid #e0e3e6", background: "#fff" }} value={lead.Tags ?? ""} onChange={(e) => updateField("Tags", e.target.value)} placeholder="Enter tags (comma separated)" />
+            <input
+              style={{
+                ...inputCommon,
+                border: "1px solid #e0e3e6",
+                background: "#fff",
+              }}
+              value={lead.Tags ?? ""}
+              onChange={(e) => updateField("Tags", e.target.value)}
+              placeholder="Enter tags (comma separated)"
+            />
           </div>
         </div>
       </section>
 
-      <div style={{ height: 1, background: "#ececec", margin: "8px 0 18px 0" }} />
+      <div
+        style={{ height: 1, background: "#ececec", margin: "8px 0 18px 0" }}
+      />
 
       {/* Action buttons */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-        <button onClick={() => (onBack ? onBack() : router.back())} style={{ padding: "10px 18px", borderRadius: 6, border: "none", background: "#9aa0a6", color: "#fff", fontWeight: 600, cursor: "pointer", minWidth: 98 }}>
+        <button
+          onClick={() => (onBack ? onBack() : router.back())}
+          style={{
+            padding: "10px 18px",
+            borderRadius: 6,
+            border: "none",
+            background: "#9aa0a6",
+            color: "#fff",
+            fontWeight: 600,
+            cursor: "pointer",
+            minWidth: 98,
+          }}
+        >
           Cancel
         </button>
 
-        <button disabled={!isDirty || saving} onClick={saveChanges} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0346c4", color: "#fff", fontWeight: 700, cursor: isDirty && !saving ? "pointer" : "not-allowed", display: "inline-flex", alignItems: "center", gap: 8, boxShadow: "0 2px 8px rgba(3,70,196,0.18)", minWidth: 140 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M17 3H5C4 3 3 4 3 5v14c0 1 1 2 2 2h14c1 0 2-1 2-2V7l-6-4z" fill="#fff" opacity="0.15"></path>
-            <path d="M17 3H5C4 3 3 4 3 5v14c0 1 1 2 2 2h14c1 0 2-1 2-2V7l-6-4z" stroke="#fff" strokeWidth="1.2"></path>
-            <rect x="7" y="9" width="10" height="6" rx="1" stroke="#fff" strokeWidth="1.2"></rect>
+        <button
+          disabled={!isDirty || saving}
+          onClick={saveChanges}
+          style={{
+            padding: "10px 18px",
+            borderRadius: 8,
+            border: "none",
+            background: "#0346c4",
+            color: "#fff",
+            fontWeight: 700,
+            cursor: isDirty && !saving ? "pointer" : "not-allowed",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            boxShadow: "0 2px 8px rgba(3,70,196,0.18)",
+            minWidth: 140,
+            opacity: isDirty && !saving ? 1 : 0.5,
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden
+          >
+            <path
+              d="M17 3H5C4 3 3 4 3 5v14c0 1 1 2 2 2h14c1 0 2-1 2-2V7l-6-4z"
+              fill="#fff"
+              opacity="0.15"
+            ></path>
+            <path
+              d="M17 3H5C4 3 3 4 3 5v14c0 1 1 2 2 2h14c1 0 2-1 2-2V7l-6-4z"
+              stroke="#fff"
+              strokeWidth="1.2"
+            ></path>
+            <rect
+              x="7"
+              y="9"
+              width="10"
+              height="6"
+              rx="1"
+              stroke="#fff"
+              strokeWidth="1.2"
+            ></rect>
             <circle cx="12" cy="12" r="0.8" fill="#fff"></circle>
           </svg>
           {saving ? "Saving…" : "Save Changes"}

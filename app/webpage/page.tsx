@@ -1,17 +1,18 @@
 // page.tsx (updated)
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store/store";
 import { clearUser } from "../../store/userSlice";
 import { setEmployees } from "../../store/employeesSlice";
 import EmployeeList, { Employee } from "./components/EmployeeList";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import AddLeadPage from "./leads/addleed/page";
 import LeadDetailsPage from "./leads/Leaddetails/page";
 import EditLeadPage from "./leads/Editlead/page";
+import DashboardPage from "./dashboard/page";
 
 // Tabs
 type TabKey =
@@ -30,6 +31,7 @@ type TabKey =
 export default function HelloPage(): JSX.Element {
   const dispatch = useDispatch();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // user (for welcome text)
   const user = useSelector(
@@ -52,6 +54,25 @@ export default function HelloPage(): JSX.Element {
     "leads" | "Prospect" | "Account" | null
   >(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Set activeTab based on URL tab param
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (
+      tab &&
+      [
+        "home",
+        "dashboard",
+        "leads",
+        "Prospect",
+        "Account",
+        "Reminder",
+      ].includes(tab)
+    ) {
+      handleTab(tab as TabKey);
+    }
+  }, [searchParams]);
+
   const tabIcons: Record<TabKey, React.ReactNode> = {
     home: "",
     dashboard: (
@@ -69,7 +90,6 @@ export default function HelloPage(): JSX.Element {
     addAccount: "",
     editLead: "",
   };
-  
 
   // ---- API CALLS ----
 
@@ -132,30 +152,28 @@ export default function HelloPage(): JSX.Element {
       setLoading(false);
     }
   };
-const handleDeleteLead = async (leadId: number | string) => {
-  if (!confirm("Are you sure you want to delete this lead?")) return;
+  const handleDeleteLead = async (leadId: number | string) => {
+    if (!confirm("Are you sure you want to delete this lead?")) return;
 
-  try {
-    const res = await fetch(
-      `/api/employees/leads?leadId=${leadId}`,
-      { method: "DELETE" }
-    );
+    try {
+      const res = await fetch(`/api/employees/leads?leadId=${leadId}`, {
+        method: "DELETE",
+      });
 
-    if (!res.ok) {
-      alert("Failed to delete lead");
-      return;
+      if (!res.ok) {
+        alert("Failed to delete lead");
+        return;
+      }
+
+      // ✅ Update UI only (this is enough)
+      setEmployeesLocal((prev) =>
+        prev ? prev.filter((l) => l.LeadId !== leadId) : prev
+      );
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Something went wrong while deleting");
     }
-
-    // ✅ Update UI only (this is enough)
-    setEmployeesLocal((prev) =>
-      prev ? prev.filter((l) => l.LeadId !== leadId) : prev
-    );
-  } catch (err) {
-    console.error("Delete failed:", err);
-    alert("Something went wrong while deleting");
-  }
-};
-
+  };
 
   // ---- TAB HANDLER (single function) ----
 
@@ -194,12 +212,7 @@ const handleDeleteLead = async (leadId: number | string) => {
         );
 
       case "dashboard":
-        return (
-          <>
-            <h2>Dashboard</h2>
-            <p>This is the dashboard area.</p>
-          </>
-        );
+        return <DashboardPage />;
 
       case "leads":
         return (
@@ -209,7 +222,7 @@ const handleDeleteLead = async (leadId: number | string) => {
             loading={loading}
             error={error}
             onAddLead={() => setActiveTab("addLead")}
-            onDelete={handleDeleteLead} 
+            onDelete={handleDeleteLead}
             onOpenLeadDetails={(leadId) => {
               setSelectedLeadId(leadId);
               setSelectedLeadOrigin("leads");
@@ -226,6 +239,7 @@ const handleDeleteLead = async (leadId: number | string) => {
             loading={loading}
             error={error}
             onAddLead={() => setActiveTab("addProspect")}
+            onDelete={handleDeleteLead}
             onOpenLeadDetails={(leadId) => {
               setSelectedLeadId(leadId);
               setSelectedLeadOrigin("Prospect");
@@ -242,6 +256,7 @@ const handleDeleteLead = async (leadId: number | string) => {
             loading={loading}
             error={error}
             onAddLead={() => setActiveTab("addAccount")}
+            onDelete={handleDeleteLead}
             onOpenLeadDetails={(leadId) => {
               setSelectedLeadId(leadId);
               setSelectedLeadOrigin("Account");
@@ -251,19 +266,16 @@ const handleDeleteLead = async (leadId: number | string) => {
         );
 
       case "addLead":
-        return <AddLeadPage type="lead" onBack={() => setActiveTab("leads")} />;
+        return <AddLeadPage type="lead" onBack={() => handleTab("leads")} />;
 
       case "addProspect":
         return (
-          <AddLeadPage
-            type="prospect"
-            onBack={() => setActiveTab("Prospect")}
-          />
+          <AddLeadPage type="prospect" onBack={() => handleTab("Prospect")} />
         );
 
       case "addAccount":
         return (
-          <AddLeadPage type="account" onBack={() => setActiveTab("Account")} />
+          <AddLeadPage type="account" onBack={() => handleTab("Account")} />
         );
 
       case "leadDetails":

@@ -10,6 +10,7 @@ type Contact = {
   ContactRoleName?: string;
 };
 type Activity = {
+  ActivityId: number;
   ActivityDate: string;
   Mode: string;
   Notes?: string;
@@ -17,6 +18,7 @@ type Activity = {
 };
 
 type Reminder = {
+  ReminderId: number;
   ReminderDate: string;
   Notes?: string;
   Status?: string;
@@ -24,11 +26,23 @@ type Reminder = {
 };
 
 type Opportunity = {
+  OpportunityId: number;
+
+  // IDs (used for edit)
+  ServiceId: number;
+  StatusId: number;
+  ProbabilityId: number;
+  EngagementId: number;
+  TechnologyIds?: number[];
+
+  // Display values (used in table)
   CreatedDate: string;
   Service: string;
   Probability: string;
   Status: string;
   EngagementModel: string;
+  Technology?: string;
+  OpportunityContact?: string;
 };
 
 type Lead = {
@@ -55,7 +69,38 @@ type LeadDetailsProps = {
   leadId?: number | string | null;
   onBack?: () => void;
   onEdit?: (leadId?: number | string | null) => void;
-  origin?: OriginType; // <-- added
+  origin?: OriginType;
+};
+
+type OppContact = {
+  OpportunityContactId?: number;
+
+  FullName?: string;
+  FirstName?: string;
+  LastName?: string;
+  PreferredName?: string;
+  JobTitle?: string;
+  Department?: string;
+  SeniorityLevel?: string;
+  Gender?: string;
+  DateOfBirth?: string;
+  ProfilePictureUrl?: string;
+
+  CompanyName?: string;
+  Division?: string;
+  OfficeLocation?: string;
+  HeadquartersLocation?: string;
+  EmployeeSize?: string | number;
+  Industry?: string;
+  CompanyWebsite?: string;
+  CompanyLinkedInPage?: string;
+
+  WorkEmail?: string;
+  PersonalEmail?: string;
+  DirectPhone?: string;
+  MobilePhone?: string;
+  OfficePhone?: string;
+  LinkedInProfileUrl?: string;
 };
 
 export default function LeadDetailsPage({
@@ -74,7 +119,60 @@ export default function LeadDetailsPage({
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [showAddOpportunity, setShowAddOpportunity] = useState(false);
+  const [opportunityView, setOpportunityView] = useState<
+    "OPPORTUNITY" | "CONTACT"
+  >("OPPORTUNITY");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [oppContacts, setOppContacts] = useState<OppContact[]>([]);
+  const [selectedOppContactIndex, setSelectedOppContactIndex] = useState<
+    number | null
+  >(null);
+
+  const [mode, setMode] = useState<"add" | "edit">("add");
+  const [currentOpportunityId, setCurrentOpportunityId] = useState<
+    number | null
+  >(null);
+
+  const EMPTY_OPP_CONTACT_FORM: OppContact = {
+    FullName: "",
+    FirstName: "",
+    LastName: "",
+    PreferredName: "",
+    JobTitle: "",
+    Department: "",
+    SeniorityLevel: "",
+    Gender: "",
+    DateOfBirth: "",
+    ProfilePictureUrl: "",
+    CompanyName: "",
+    Division: "",
+    OfficeLocation: "",
+    HeadquartersLocation: "",
+    EmployeeSize: "",
+    Industry: "",
+    CompanyWebsite: "",
+    CompanyLinkedInPage: "",
+    WorkEmail: "",
+    PersonalEmail: "",
+    DirectPhone: "",
+    MobilePhone: "",
+    OfficePhone: "",
+    LinkedInProfileUrl: "",
+  };
+
+  const [oppContactForm, setOppContactForm] = useState(EMPTY_OPP_CONTACT_FORM);
+
   // ---------------- FORM STATES ----------------
+  const [editingValues, setEditingValues] = useState<Record<string, any>>({});
+  const getCellValue = (key: string, fallback: any) => {
+    return key in editingValues ? editingValues[key] : fallback;
+  };
+
+  const isValueChanged = (oldVal: any, newVal: any) => {
+    return String(oldVal ?? "").trim() !== String(newVal ?? "").trim();
+  };
+
+  const [editingCell, setEditingCell] = useState<string | null>(null);
 
   const [activityForm, setActivityForm] = useState({
     ActivityDate: "",
@@ -90,22 +188,97 @@ export default function LeadDetailsPage({
     Notification: "",
   });
 
-  const [opportunityForm, setOpportunityForm] = useState({
-    Service: "",
-    Probability: "",
-    Status: "",
-    EngagementModel: "",
-  });
-  const handleSaveActivity = async () => {
-  if (!activityForm.Mode || !activityForm.Status || !activityForm.Notes) {
-    alert("Please fill all required fields");
-    return;
-  }
+  const resetOpportunityForm = () => {
+    setOpportunityForm({
+      serviceId: "",
+      probabilityId: "",
+      statusId: "",
+      engagementId: "",
+      technologies: [],
+    });
+  };
 
-  try {
-    const res = await fetch(
-      `/api/employees/leads/${effectiveLeadId}/activities`,
-      {
+  const [opportunityForm, setOpportunityForm] = useState({
+    serviceId: "" as number | "",
+    statusId: "" as number | "",
+    probabilityId: "" as number | "",
+    engagementId: "" as number | "",
+    technologies: [] as number[],
+  });
+
+  const handleAddOpportunityClick = () => {
+    setMode("add");
+    setCurrentOpportunityId(null);
+    resetOpportunityForm();
+
+    setOppContacts([]); // clear saved contacts
+    setOppContactForm(EMPTY_OPP_CONTACT_FORM); // reset contact form
+    setSelectedOppContactIndex(null);
+
+    setOpportunityView("OPPORTUNITY"); // ensure correct view
+    setShowAddOpportunity(true);
+  };
+
+  const handleTechnologyChange = (subCategoryId: number) => {
+    setOpportunityForm((prev) => ({
+      ...prev,
+      technologies: prev.technologies.includes(subCategoryId)
+        ? prev.technologies.filter((id) => id !== subCategoryId)
+        : [...prev.technologies, subCategoryId],
+    }));
+  };
+
+  // fetch lead details
+
+  const fetchLeadDetails = async () => {
+    if (!effectiveLeadId) return;
+
+    try {
+      const res = await fetch(`/api/employees/leads/${effectiveLeadId}`);
+      if (!res.ok) {
+        console.error("Failed to fetch lead details");
+        return;
+      }
+
+      const data = await res.json();
+
+      setLead({
+        ...data,
+        Contacts: data.Contacts || [],
+        Activities: data.Activities || [],
+        Reminders: data.Reminders || [],
+        Opportunities: data.Opportunities || [],
+      });
+    } catch (error) {
+      console.error("Error fetching lead details:", error);
+    }
+  };
+
+  // save activity
+
+  const handleSaveActivity = async () => {
+    if (!activityForm.Mode || !activityForm.Status || !activityForm.Notes) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    const leadId =
+      lead?.LeadId ??
+      (effectiveLeadId && !isNaN(Number(effectiveLeadId))
+        ? Number(effectiveLeadId)
+        : null);
+
+    if (!leadId) {
+      alert("Invalid Lead selected");
+      console.error("LeadId missing:", {
+        leadIdFromState: lead?.LeadId,
+        effectiveLeadId,
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/employees/leads/${leadId}/activities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -114,142 +287,313 @@ export default function LeadDetailsPage({
           Status: activityForm.Status,
           ActivityDate: new Date().toISOString(),
         }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Activity save failed:", err);
+        alert(err.error || "Failed to save activity");
+        return;
       }
-    );
 
-    if (!res.ok) {
-      const err = await res.json();
-      console.error("Activity save failed:", err);
-      alert(err.error || "Failed to save activity");
-      return;
+      const savedActivity = await res.json();
+
+      setLead((prev) =>
+        prev
+          ? {
+              ...prev,
+              Activities: [...(prev.Activities || []), savedActivity],
+            }
+          : prev
+      );
+
+      setActivityForm({
+        ActivityDate: "",
+        Mode: "",
+        Status: "",
+        Notes: "",
+      });
+
+      setShowAddActivity(false);
+    } catch (err) {
+      console.error("Frontend save error:", err);
+      alert("Unexpected error while saving activity");
     }
+  };
 
-    // ✅ Activity saved in DB — get DB response
-    const savedActivity = await res.json();
+  const formatDateTime = (value?: string) => {
+    if (!value) return "—";
 
-    // ✅ Update UI with DB-backed data
-    setLead((prev) =>
-      prev
-        ? {
-            ...prev,
-            Activities: [...(prev.Activities || []), savedActivity],
-          }
-        : prev
-    );
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
 
-    // ✅ Reset form
-    setActivityForm({
-      ActivityDate: "",
-      Mode: "",
-      Status: "",
-      Notes: "",
-    });
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
 
-    setShowAddActivity(false);
-  } catch (err) {
-    console.error("Frontend save error:", err);
-    alert("Unexpected error while saving activity");
-  }
-};
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  };
+
+  // save reminder
 
   const handleSaveReminder = async () => {
     if (!reminderForm.ReminderDate || !reminderForm.Notes) {
-      alert("Please fill required fields");
-      return;
-    }
-
-    const res = await fetch(
-      `/api/employees/leads/${effectiveLeadId}/reminders`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(reminderForm),
-      }
-    );
-
-    if (!res.ok) {
-      alert("Failed to save reminder");
-      return;
-    }
-
-    const savedReminder = await res.json();
-
-    setLead((prev) =>
-      prev
-        ? {
-          ...prev,
-          Reminders: [...(prev.Reminders || []), savedReminder],
-        }
-        : prev
-    );
-
-    setShowAddReminder(false);
-  };
-  const handleSaveOpportunity = async () => {
-    if (
-      !opportunityForm.Service ||
-      !opportunityForm.Status ||
-      !opportunityForm.Probability ||
-      !opportunityForm.EngagementModel
-    ) {
       alert("Please fill all required fields");
       return;
     }
 
-    const res = await fetch(
-      `/api/employees/leads/${effectiveLeadId}/opportunities`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(opportunityForm),
-      }
-    );
-
-    if (!res.ok) {
-      alert("Failed to save opportunity");
+    const leadId = lead?.LeadId;
+    if (!leadId) {
+      alert("Invalid Lead");
       return;
     }
 
-    const saved = await res.json();
+    try {
+      const res = await fetch(`/api/employees/leads/${leadId}/reminders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ReminderDate: reminderForm.ReminderDate,
+          Notes: reminderForm.Notes,
+          Status: reminderForm.Status,
+          Notification: reminderForm.Notification,
+        }),
+      });
 
-    setLead((prev) =>
-      prev
-        ? {
-          ...prev,
-          Opportunities: [...(prev.Opportunities || []), saved],
-        }
-        : prev
-    );
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to save reminder");
+      }
 
-    setShowAddOpportunity(false);
+      const savedReminder = await res.json();
+
+      // Update UI immediately
+      setLead((prev) =>
+        prev
+          ? {
+              ...prev,
+              Reminders: [...(prev.Reminders || []), savedReminder],
+            }
+          : prev
+      );
+
+      // Reset form
+      setReminderForm({
+        ReminderDate: "",
+        Notes: "",
+        Status: "Pending",
+        Notification: "Email",
+      });
+
+      setShowAddReminder(false);
+    } catch (err: any) {
+      alert(err.message || "Reminder save failed");
+    }
   };
 
+    const autoSaveActivityField = async (
+      index: number,
+      field: keyof Activity,
+      value: any
+    ) => {
+      const activity = lead?.Activities?.[index];
+      if (!activity || !lead?.LeadId) return;
 
-  // Take ID from props first, else from URL (?leadId=...)
+      try {
+        await fetch(`/api/employees/leads/${lead.LeadId}/activities`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ActivityId: activity.ActivityId,
+            Mode: field === "Mode" ? value : activity.Mode,
+            Notes: field === "Notes" ? value : activity.Notes,
+            Status: field === "Status" ? value : activity.Status,
+            ActivityDate: activity.ActivityDate,
+          }),
+        });
+
+        fetchLeadDetails();
+      } catch (err) {
+        console.error("Activity auto-save failed", err);
+      }
+    };
+    const autoSaveReminderField = async (
+      index: number,
+      field: keyof Reminder,
+      value: any
+    ) => {
+      const reminder = lead?.Reminders?.[index];
+      if (!reminder || !lead?.LeadId) return;
+
+      try {
+        await fetch(`/api/employees/leads/${lead.LeadId}/reminders`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ReminderId: reminder.ReminderId,
+            ReminderDate:
+              field === "ReminderDate" ? value : reminder.ReminderDate,
+            Notes: field === "Notes" ? value : reminder.Notes,
+            Status: field === "Status" ? value : reminder.Status,
+            Notification:
+              field === "Notification" ? value : reminder.Notification,
+          }),
+        });
+
+        fetchLeadDetails();
+      } catch (err) {
+        console.error("Reminder auto-save failed", err);
+      }
+    };
+
+  // edit opportunity
+
+  const handleEditOpportunity = async (o: Opportunity) => {
+    setMode("edit");
+    setCurrentOpportunityId(o.OpportunityId);
+    setShowAddOpportunity(true);
+
+    /* 1️⃣ Load opportunity details */
+    const oppRes = await fetch(
+      `/api/employees/leads/${effectiveLeadId}/opportunities?OpportunityId=${o.OpportunityId}`
+    );
+
+    if (!oppRes.ok) {
+      alert("Failed to load opportunity");
+      return;
+    }
+
+    const oppData = await oppRes.json();
+
+    setOpportunityForm({
+      serviceId: oppData.ServiceId,
+      statusId: oppData.StatusId,
+      probabilityId: oppData.ProbabilityId,
+      engagementId: oppData.EngagementId,
+      technologies: oppData.TechnologyIds || [],
+    });
+
+    /* 🔥 2️⃣ LOAD SAVED OPPORTUNITY CONTACTS (THIS WAS MISSING) */
+    const contactsRes = await fetch(
+      `/api/employees/leads/${effectiveLeadId}/opportunities/${o.OpportunityId}/contacts`
+    );
+
+    if (contactsRes.ok) {
+      const contacts = await contactsRes.json();
+      setOppContacts(contacts); // ✅ THIS FILLS THE UI
+    } else {
+      setOppContacts([]);
+    }
+
+    setOpportunityView("OPPORTUNITY");
+  };
+
+  const buildOppContactSummary = () => {
+    if (!oppContacts.length) return "-";
+
+    if (oppContacts.length === 1) {
+      const c = oppContacts[0];
+      return `${c.FullName} (${c.MobilePhone})`;
+    }
+
+    return `${oppContacts[0].FullName} +${oppContacts.length - 1}`;
+  };
+
+  const handleSaveOpportunity = async () => {
+    const isEdit = mode === "edit";
+
+    const id = effectiveLeadId ?? leadId;
+
+    if (
+      !opportunityForm.serviceId ||
+      !opportunityForm.statusId ||
+      !opportunityForm.probabilityId ||
+      !opportunityForm.engagementId
+    ) {
+      alert("Please fill all required opportunity fields");
+      return;
+    }
+
+    if (!id) {
+      alert("Invalid Lead selected");
+      return;
+    }
+
+    
+
+    // 1️⃣ SAVE OPPORTUNITY
+    const res = await fetch(`/api/employees/leads/${id}/opportunities`, {
+      method: isEdit ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...(isEdit && { OpportunityId: currentOpportunityId }),
+        serviceId: opportunityForm.serviceId,
+        statusId: opportunityForm.statusId,
+        probabilityId: opportunityForm.probabilityId,
+        engagementId: opportunityForm.engagementId,
+        technologies: opportunityForm.technologies,
+        OpportunityContact: buildOppContactSummary(),
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Failed to save opportunity");
+      return;
+    }
+
+
+    // 2️⃣ READ RESPONSE (IMPORTANT)
+    const savedOpportunity = await res.json();
+
+    const OpportunityId = isEdit
+      ? currentOpportunityId
+      : savedOpportunity.OpportunityId;
+
+    // 4️⃣ UPDATE UI (your existing logic)
+    setLead((prev) => {
+      if (!prev || !prev.Opportunities) return prev;
+
+      return {
+        ...prev,
+        Opportunities: isEdit
+          ? prev.Opportunities.map((o) =>
+              o.OpportunityId === OpportunityId
+                ? { ...o, OpportunityContact: buildOppContactSummary() }
+                : o
+            )
+          : prev.Opportunities,
+      };
+    });
+
+    // 5️⃣ RESET & CLOSE
+    setShowAddOpportunity(false);
+    setCurrentOpportunityId(null);
+    setMode("add");
+
+    await fetchLeadDetails();
+  };
+
   const leadIdFromQuery = searchParams.get("leadId");
-  const effectiveLeadId = leadId ?? leadIdFromQuery;
+
+  const effectiveLeadId =
+    lead?.LeadId ??
+    leadId ??
+    (leadIdFromQuery && !isNaN(Number(leadIdFromQuery))
+      ? Number(leadIdFromQuery)
+      : null);
 
   // NEW: helpers to pick label / back text
   const getConvertLabel = () => {
-    if (!lead?.AccountTypeName) return "Convert";
-
-    if (lead.AccountTypeName === "Lead") return "Convert to Prospect";
-    if (lead.AccountTypeName === "Prospect") return "Convert to Account";
-    if (lead.AccountTypeName === "Account") return "Convert to Master Account";
+    if (finalOrigin === "leads") return "Convert to Prospect";
+    if (finalOrigin === "Prospect") return "Convert to Account";
+    if (finalOrigin === "Account") return "Convert to Master Account";
 
     return "Already a Master Account";
   };
-
-  const getTargetType = () => {
-    if (!lead?.AccountTypeName) return "";
-
-    if (lead.AccountTypeName === "Lead") return "Prospect";
-    if (lead.AccountTypeName === "Prospect") return "Account";
-    if (lead.AccountTypeName === "Account") return "MasterAccount";
-
-    return "";
-  };
-
 
   const getBackLabel = () => {
     if (origin === "leads") return "← Back to Leads";
@@ -258,12 +602,13 @@ export default function LeadDetailsPage({
     return "← Back";
   };
 
+  // back button handler
+
   const handleBack = () => {
     if (onBack) {
       onBack();
       return;
     } else {
-
       if (origin === "Prospect") {
         router.push("/webpage?tab=prospect");
       } else if (origin === "Account") {
@@ -273,6 +618,9 @@ export default function LeadDetailsPage({
       }
     }
   };
+
+  // edit button handler
+
   const handleEdit = () => {
     if (onEdit) {
       onEdit(lead?.LeadId ?? effectiveLeadId ?? null);
@@ -284,53 +632,63 @@ export default function LeadDetailsPage({
     }
   };
 
+  // convert button handler
+
   const handleConvert = async () => {
     if (!lead?.LeadId) {
-      alert("Lead ID not found");
-      return;
-    }
-
-    const targetType = getTargetType();
-    if (!targetType) {
-      alert("No further conversion possible");
+      alert("ID not found");
       return;
     }
 
     try {
-      const res = await fetch("/api/employees/leads", {
+      const res = await fetch(`/api/employees/leads/${lead.LeadId}/convert`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "convert",
-          leadId: lead.LeadId,
-          targetType,
-        }),
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Conversion failed");
+        let errorMessage = "Conversion failed";
+
+        try {
+          const err = await res.json();
+          errorMessage = err.error || errorMessage;
+        } catch {}
+
+        throw new Error(errorMessage);
       }
 
-      alert(`${getConvertLabel()} successful`);
-
-      // ✅ Redirect based on NEXT LEVEL
-      if (targetType === "Prospect") {
+      // Redirect based on CURRENT stage
+      // SHOW SUCCESS POPUP
+      if (finalOrigin === "leads") {
+        alert("Converted successfully to Prospect");
         router.push("/webpage?tab=prospect");
-      } else if (targetType === "Account") {
+      } else if (finalOrigin === "Prospect") {
+        alert("Converted successfully to Account");
         router.push("/webpage?tab=account");
-      } else if (targetType === "MasterAccount") {
+      } else if (finalOrigin === "Account") {
+        alert("Converted successfully to Master Account");
         router.push("/webpage?tab=masteraccount");
       }
-
-    } catch (error: any) {
-      console.error("Convert error:", error);
-      alert(error.message || "Failed to convert");
+    } catch (err: any) {
+      alert(err.message || "Failed to convert");
     }
   };
 
+  useEffect(() => {
+    if (!showAddOpportunity) return;
 
+    fetch("/api/masters/categories-with-subcategories")
+      .then((res) => res.json())
+      .then((data) => {
+        setCategories(data);
+      })
+      .catch((err) => {
+        console.error("Failed to load technologies", err);
+      });
+  }, [showAddOpportunity]);
 
+  useEffect(() => {
+    fetchLeadDetails();
+  }, [effectiveLeadId]);
 
   useEffect(() => {
     if (!effectiveLeadId) {
@@ -345,7 +703,7 @@ export default function LeadDetailsPage({
     (async () => {
       try {
         const trySingle = await fetch(
-          `/api/employees/leads/${encodeURIComponent(effectiveLeadId)}`
+          `/api/employees/leads/${Number(effectiveLeadId)}`
         );
         if (trySingle.ok) {
           const data = await trySingle.json();
@@ -362,8 +720,8 @@ export default function LeadDetailsPage({
         const array = Array.isArray(all)
           ? all
           : all?.data && Array.isArray(all.data)
-            ? all.data
-            : [];
+          ? all.data
+          : [];
 
         const found = array.find(
           (x: any) => String(x.LeadId) === String(effectiveLeadId)
@@ -390,7 +748,7 @@ export default function LeadDetailsPage({
     };
   }, [effectiveLeadId, origin]);
 
-  //  EARLY STATES 
+  //  EARLY STATES
 
   if (!effectiveLeadId) {
     return (
@@ -424,7 +782,7 @@ export default function LeadDetailsPage({
     );
   }
 
-  // STYLES 
+  // STYLES
 
   const container: React.CSSProperties = {
     padding: 15,
@@ -623,12 +981,15 @@ export default function LeadDetailsPage({
     alignItems: "center",
     zIndex: 9999,
   };
-
   const modalBox: React.CSSProperties = {
-    width: 450,
+    width: "60%",
+    maxWidth: 1100,
     background: "#fff",
     borderRadius: 8,
     overflow: "hidden",
+    maxHeight: "85vh",
+    display: "flex",
+    flexDirection: "column",
   };
 
   const modalHeader: React.CSSProperties = {
@@ -637,14 +998,17 @@ export default function LeadDetailsPage({
     padding: 15,
     fontSize: 15,
     fontWeight: "bold",
+    flexShrink: 0, // 🔑 important
   };
-
   const modalBody: React.CSSProperties = {
     padding: 20,
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    fontSize: 13
+    fontSize: 13,
+    overflowY: "auto", // ✅ scroll happens here
+    flex: 1, // ✅ takes remaining height
+    boxSizing: "border-box",
   };
 
   const modalFooter: React.CSSProperties = {
@@ -652,14 +1016,30 @@ export default function LeadDetailsPage({
     display: "flex",
     justifyContent: "flex-end",
     gap: 10,
+    flexShrink: 0, // 🔑 keeps footer visible
+    background: "#fff",
+    borderTop: "1px solid #e5e7eb",
   };
 
   const inputBox: React.CSSProperties = {
     width: "100%",
-    padding: "10px",
-    borderRadius: 4,
-    border: "1px solid #ccc",
-    fontSize: 12,
+    maxWidth: "100%",
+    height: 36,
+    padding: "6px 10px",
+    borderRadius: 6,
+    border: "1px solid #cbd5e1",
+    fontSize: 13,
+    background: "#fff",
+    boxSizing: "border-box",
+  };
+
+  const formRow3: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: 16,
+    marginBottom: 16,
+    width: "100%",
+    boxSizing: "border-box",
   };
 
   const cancelBtn: React.CSSProperties = {
@@ -679,7 +1059,27 @@ export default function LeadDetailsPage({
     cursor: "pointer",
   };
 
-  // MAIN RENDER 
+  const fieldGroup: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 13,
+    fontWeight: 600,
+  };
+
+  const inputStyle: React.CSSProperties = {
+    height: 36,
+    padding: "6px 10px",
+    borderRadius: 6,
+    border: "1px solid #cbd5e1",
+    fontSize: 13,
+    width: "100%",
+  };
+
+  // MAIN RENDER
 
   return (
     <div style={container}>
@@ -697,14 +1097,12 @@ export default function LeadDetailsPage({
           <button
             onClick={handleConvert}
             style={secondaryBtn}
-            disabled={lead.AccountTypeName === "MasterAccount"}
+            disabled={finalOrigin === "MasterAccount"}
           >
-            {lead.AccountTypeName === "MasterAccount"
+            {finalOrigin === "MasterAccount"
               ? "Already a Master Account"
               : getConvertLabel()}
           </button>
-
-
 
           <button onClick={handleEdit} style={primaryBtn}>
             Edit
@@ -714,7 +1112,15 @@ export default function LeadDetailsPage({
 
       <div style={rowStyle}>
         <div style={cardStyle}>
-          <div style={{ ...sectionTitle, borderBottom: "1px solid #e6e6e6", paddingBottom: 8 }}>Company Information</div>
+          <div
+            style={{
+              ...sectionTitle,
+              borderBottom: "1px solid #e6e6e6",
+              paddingBottom: 8,
+            }}
+          >
+            Company Information
+          </div>
           <div style={{ marginBottom: 8 }}>
             <span style={contactRowLabel}>Company: </span>
             <span style={value}>{lead.CompanyName}</span>
@@ -761,7 +1167,15 @@ export default function LeadDetailsPage({
         </div>
 
         <div style={rightCardStyle}>
-          <div style={{ ...sectionTitle, borderBottom: "1px solid #e6e6e6", paddingBottom: 8 }}>Contacts</div>
+          <div
+            style={{
+              ...sectionTitle,
+              borderBottom: "1px solid #e6e6e6",
+              paddingBottom: 8,
+            }}
+          >
+            Contacts
+          </div>
 
           {(lead.Contacts || []).map((c, idx) => (
             <div key={idx} style={contactCardStyle}>
@@ -835,21 +1249,77 @@ export default function LeadDetailsPage({
           </thead>
           <tbody>
             {(lead.Activities || []).map((a, i) => (
-              <tr key={i}>
-                <td style={tdStyle}>{a.ActivityDate}</td>
-                <td style={tdStyle}>{a.Mode}</td>
-                <td style={tdStyle}>{a.Notes}</td>
-                <td style={tdStyle}>{a.Status}</td>
-              </tr>
-            ))}
+              <tr key={a.ActivityId}>
+                {/* Activity Date (read-only) */}
+                <td style={tdStyle}>{formatDateTime(a.ActivityDate)}</td>
 
-            {(!lead.Activities || lead.Activities.length === 0) && (
-              <tr>
-                <td style={tdStyle} colSpan={4}>
-                  No activities
+                {/* Mode */}
+                <td
+                  style={tdStyle}
+                  onClick={() => setEditingCell(`act-mode-${a.ActivityId}`)}
+                >
+                  {editingCell === `act-mode-${a.ActivityId}` ? (
+                    <input
+                      autoFocus
+                      style={inputBox}
+                      defaultValue={a.Mode || ""}
+                      onBlur={(e) => {
+                        if (isValueChanged(a.Mode, e.target.value)) {
+                          autoSaveActivityField(i, "Mode", e.target.value);
+                        }
+                        setEditingCell(null);
+                      }}
+                    />
+                  ) : (
+                    a.Mode || "—"
+                  )}
+                </td>
+
+                {/* Notes */}
+                <td
+                  style={tdStyle}
+                  onClick={() => setEditingCell(`act-notes-${a.ActivityId}`)}
+                >
+                  {editingCell === `act-notes-${a.ActivityId}` ? (
+                    <input
+                      autoFocus
+                      style={inputBox}
+                      defaultValue={a.Notes || ""}
+                      onBlur={(e) => {
+                        if (isValueChanged(a.Notes, e.target.value)) {
+                          autoSaveActivityField(i, "Notes", e.target.value);
+                        }
+                        setEditingCell(null);
+                      }}
+                    />
+                  ) : (
+                    a.Notes || "—"
+                  )}
+                </td>
+
+                {/* Status */}
+                <td
+                  style={tdStyle}
+                  onClick={() => setEditingCell(`act-status-${a.ActivityId}`)}
+                >
+                  {editingCell === `act-status-${a.ActivityId}` ? (
+                    <input
+                      autoFocus
+                      style={inputBox}
+                      defaultValue={a.Status || ""}
+                      onBlur={(e) => {
+                        if (isValueChanged(a.Status, e.target.value)) {
+                          autoSaveActivityField(i, "Status", e.target.value);
+                        }
+                        setEditingCell(null);
+                      }}
+                    />
+                  ) : (
+                    a.Status || "—"
+                  )}
                 </td>
               </tr>
-            )}
+            ))}
           </tbody>
         </table>
       </div>
@@ -879,28 +1349,109 @@ export default function LeadDetailsPage({
           </thead>
           <tbody>
             {(lead.Reminders || []).map((r, i) => (
-              <tr key={i}>
+              <tr key={r.ReminderId}>
+                {/* Reminder Date */}
                 <td style={tdStyle}>{r.ReminderDate}</td>
-                <td style={tdStyle}>{r.Notes}</td>
-                <td style={tdStyle}>{r.Status}</td>
-                <td style={tdStyle}>{r.Notification}</td>
-              </tr>
-            ))}
+                {/* <td
+        style={tdStyle}
+        onClick={() => setEditingCell(`rem-date-${r.ReminderId}`)}
+      >
+        {editingCell === `rem-date-${r.ReminderId}` ? (
+          <input
+            autoFocus
+            type="date"
+            style={inputBox}
+            defaultValue={r.ReminderDate || ""}
+            onBlur={(e) => {
+              if (isValueChanged(r.ReminderDate, e.target.value)) {
+                autoSaveReminderField(i, "ReminderDate", e.target.value);
+              }
+              setEditingCell(null);
+            }}
+          />
+        ) : (
+          r.ReminderDate || "—"
+        )}
+      </td> */}
 
-            {(!lead.Reminders || lead.Reminders.length === 0) && (
-              <tr>
-                <td style={tdStyle} colSpan={4}>
-                  No reminders
+                {/* Notes */}
+                <td
+                  style={tdStyle}
+                  onClick={() => setEditingCell(`rem-notes-${r.ReminderId}`)}
+                >
+                  {editingCell === `rem-notes-${r.ReminderId}` ? (
+                    <input
+                      autoFocus
+                      style={inputBox}
+                      defaultValue={r.Notes || ""}
+                      onBlur={(e) => {
+                        if (isValueChanged(r.Notes, e.target.value)) {
+                          autoSaveReminderField(i, "Notes", e.target.value);
+                        }
+                        setEditingCell(null);
+                      }}
+                    />
+                  ) : (
+                    r.Notes || "—"
+                  )}
+                </td>
+
+                {/* Status */}
+                <td
+                  style={tdStyle}
+                  onClick={() => setEditingCell(`rem-status-${r.ReminderId}`)}
+                >
+                  {editingCell === `rem-status-${r.ReminderId}` ? (
+                    <input
+                      autoFocus
+                      style={inputBox}
+                      defaultValue={r.Status || ""}
+                      onBlur={(e) => {
+                        if (isValueChanged(r.Status, e.target.value)) {
+                          autoSaveReminderField(i, "Status", e.target.value);
+                        }
+                        setEditingCell(null);
+                      }}
+                    />
+                  ) : (
+                    r.Status || "—"
+                  )}
+                </td>
+
+                {/* Notification */}
+                <td
+                  style={tdStyle}
+                  onClick={() => setEditingCell(`rem-notify-${r.ReminderId}`)}
+                >
+                  {editingCell === `rem-notify-${r.ReminderId}` ? (
+                    <input
+                      autoFocus
+                      style={inputBox}
+                      defaultValue={r.Notification || ""}
+                      onBlur={(e) => {
+                        if (isValueChanged(r.Notification, e.target.value)) {
+                          autoSaveReminderField(
+                            i,
+                            "Notification",
+                            e.target.value
+                          );
+                        }
+                        setEditingCell(null);
+                      }}
+                    />
+                  ) : (
+                    r.Notification || "—"
+                  )}
                 </td>
               </tr>
-            )}
+            ))}
           </tbody>
         </table>
       </div>
       {/* Lead Opportunities */}
       <div style={{ ...sectionTitle, display: "flex", alignItems: "center" }}>
         Lead Opportunities
-        <button style={addBtn} onClick={() => setShowAddOpportunity(true)}>
+        <button style={addBtn} onClick={handleAddOpportunityClick}>
           +
         </button>
       </div>
@@ -915,22 +1466,30 @@ export default function LeadDetailsPage({
         >
           <thead>
             <tr>
-              <th style={{ ...thStyle, width: 180 }}>Created Date</th>
               <th style={{ ...thStyle, width: 150 }}>Service</th>
               <th style={{ ...thStyle, width: 120 }}>Probability</th>
               <th style={{ ...thStyle, width: 200 }}>Status</th>
               <th style={{ ...thStyle, width: 200 }}>Engagement Model</th>
+              <th style={{ ...thStyle, width: 250 }}>Technology</th>
+              <th style={{ ...thStyle, width: 250 }}>Opportunity Contact</th>
             </tr>
           </thead>
 
           <tbody>
-            {(lead.Opportunities || []).map((o, i) => (
-              <tr key={i}>
-                <td style={tdStyle}>{o.CreatedDate}</td>
+            {lead.Opportunities?.map((o, i) => (
+              <tr
+                key={o.OpportunityId ?? i}
+                style={{ cursor: "pointer" }}
+                onClick={() => handleEditOpportunity(o)}
+              >
                 <td style={tdStyle}>{o.Service}</td>
                 <td style={tdStyle}>{o.Probability}</td>
                 <td style={tdStyle}>{o.Status}</td>
                 <td style={tdStyle}>{o.EngagementModel}</td>
+                <td style={tdStyle}>{o.Technology ?? "-"}</td>
+                <td style={{ ...tdStyle, whiteSpace: "pre-line" }}>
+                  {o.OpportunityContact}
+                </td>
               </tr>
             ))}
 
@@ -1120,7 +1679,8 @@ export default function LeadDetailsPage({
       {/* -------------------- ADD OPPORTUNITY MODAL -------------------- */}
       {showAddOpportunity && (
         <div style={modalOverlay}>
-          <div style={{ ...modalBox, width: "85%", maxWidth: 1100 }}>
+          <div style={{ ...modalBox, width: "60%", maxWidth: 1100 }}>
+            {/* Header */}
             <div
               style={{
                 ...modalHeader,
@@ -1132,176 +1692,745 @@ export default function LeadDetailsPage({
               <span>Add Lead Opportunity</span>
               <span
                 style={{ cursor: "pointer", fontSize: 22 }}
-                onClick={() => setShowAddOpportunity(false)}
+                onClick={() => {
+                  setShowAddOpportunity(false);
+                  setOpportunityView("OPPORTUNITY");
+                }}
               >
                 ✕
               </span>
             </div>
 
+            {/* Body */}
             <div style={modalBody}>
-              <div style={{ display: "flex", gap: 20 }}>
-                <div style={{ flex: 1 }}>
-                  <label>Service *</label>
-                  <select style={inputBox}>
-                    <option>- - Select Service - -</option>
-                    <option>AI</option>
-                    <option>Cloud</option>
-                    <option>Data Engineering</option>
-                    <option>DevOps</option>
-                    <option>Staff Augmentation</option>
-                  </select>
-                </div>
+              {opportunityView === "OPPORTUNITY" && (
+                <>
+                  {/* FIRST ROW - 3 COLUMNS */}
+                  <div style={formRow3}>
+                    <div style={fieldGroup}>
+                      <label>Service *</label>
+                      <select
+                        style={inputBox}
+                        value={opportunityForm.serviceId}
+                        onChange={(e) =>
+                          setOpportunityForm({
+                            ...opportunityForm,
+                            serviceId: Number(e.target.value),
+                          })
+                        }
+                      >
+                        <option value="">-- Select Service --</option>
+                        <option value={1}>TalentMatch</option>
+                        <option value={2}>DevAlley</option>
+                        <option value={3}>Software Engineering</option>
+                        <option value={4}>SAAS / ERP</option>
+                        <option value={5}>Cloud</option>
+                        <option value={6}>BI</option>
+                        <option value={7}>AI</option>
+                        <option value={8}>Data Works</option>
+                      </select>
+                    </div>
 
-                <div style={{ flex: 1 }}>
-                  <label>Status *</label>
-                  <select style={inputBox}>
-                    <option>- - Select Status - -</option>
-                    <option>Engagement Model Identified</option>
-                    <option>Proposal Sent</option>
-                    <option>Negotiation</option>
-                    <option>Closed Won</option>
-                    <option>Closed Lost</option>
-                  </select>
-                </div>
-              </div>
+                    <div style={fieldGroup}>
+                      <label>Status *</label>
+                      <select
+                        style={inputBox}
+                        value={opportunityForm.statusId}
+                        onChange={(e) =>
+                          setOpportunityForm({
+                            ...opportunityForm,
+                            statusId: Number(e.target.value),
+                          })
+                        }
+                      >
+                        <option value="">-- Select Status --</option>
 
-              <div style={{ display: "flex", gap: 20 }}>
-                <div style={{ flex: 1 }}>
-                  <label>Probability*</label>
+                        <option value={1}>Imported / Campaign Lead</option>
+                        <option value={2}>
+                          Inbound Inquiry (Website / Event)
+                        </option>
+                        <option value={3}>
+                          Outbound Prospecting (Cold Email / LinkedIn / Call)
+                        </option>
+                        <option value={4}>Partner / Referral Lead</option>
+                        <option value={5}>Marketing Nurtured Lead</option>
+                      </select>
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label>Engagement Model *</label>
+                      <select
+                        style={inputBox}
+                        value={opportunityForm.engagementId}
+                        onChange={(e) =>
+                          setOpportunityForm({
+                            ...opportunityForm,
+                            engagementId: Number(e.target.value),
+                          })
+                        }
+                      >
+                        <option value="">-- Select Engagement Model --</option>
+
+                        <option value={4}>Competence Center (ODC)</option>
+                        <option value={1}>Managed Resourcing</option>
+                        <option value={2}>Project</option>
+                        <option value={3}>Shared Services</option>
+                        <option value={5}>Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* PROBABILITY */}
+                  <div style={fieldGroup}>
+                    <label>Probability *</label>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 6,
+                        padding: "1px 12px",
+                        height: 36,
+                        marginRight: 500,
+                      }}
+                    >
+                      {[
+                        { id: 1, label: "<25%" },
+                        { id: 2, label: "50%" },
+                        { id: 3, label: "75%" },
+                        { id: 4, label: "90%" },
+                      ].map((p) => (
+                        <label
+                          key={p.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 13,
+                            cursor: "pointer",
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="probability"
+                            checked={opportunityForm.probabilityId === p.id}
+                            onChange={() =>
+                              setOpportunityForm({
+                                ...opportunityForm,
+                                probabilityId: p.id,
+                              })
+                            }
+                          />
+                          {p.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* TECHNOLOGY */}
+                  <label style={{ marginTop: 10 }}>Technology*</label>
+
                   <div
                     style={{
                       border: "1px solid #ccc",
+                      padding: 20,
                       borderRadius: 6,
-                      padding: 12,
-                      marginTop: 6,
                     }}
                   >
-                    <div>
-                      <input type="radio" name="prob" /> &nbsp; &lt;25%
-                    </div>
-                    <div style={{ marginTop: 6 }}>
-                      <input type="radio" name="prob" /> &nbsp; 50%
-                    </div>
-                    <div style={{ marginTop: 6 }}>
-                      <input type="radio" name="prob" /> &nbsp; 75%
-                    </div>
-                    <div style={{ marginTop: 6 }}>
-                      <input type="radio" name="prob" /> &nbsp; 90%
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: 10,
+                        maxHeight: 200,
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                      }}
+                    >
+                      {categories.map((cat: any) => (
+                        <div key={cat.CategoryId}>
+                          <b>{cat.CategoryName}</b>
+
+                          {cat.SubCategories.map((sc: any) => {
+                            // CASE 1: SubCategory has children (AI → API / Open Source)
+                            if (sc.Children && sc.Children.length > 0) {
+                              return (
+                                <div
+                                  key={sc.SubCategoryId}
+                                  style={{ marginTop: 6 }}
+                                >
+                                  <div
+                                    style={{ fontWeight: 600, fontSize: 13 }}
+                                  >
+                                    {sc.SubCategoryName}
+                                  </div>
+
+                                  {sc.Children.map((child: any) => (
+                                    <div
+                                      key={child.SubCategoryId}
+                                      style={{ marginLeft: 16, marginTop: 4 }}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={opportunityForm.technologies.includes(
+                                          child.SubCategoryId
+                                        )}
+                                        onChange={() =>
+                                          handleTechnologyChange(
+                                            child.SubCategoryId
+                                          )
+                                        }
+                                      />
+                                      &nbsp; {child.SubCategoryName}
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            }
+
+                            // CASE 2: Normal subcategory (all other categories)
+                            return (
+                              <div
+                                key={sc.SubCategoryId}
+                                style={{
+                                  marginTop: 6,
+                                  display: "flex",
+                                  alignItems: "flex-start",
+                                  gap: 6,
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={opportunityForm.technologies.includes(
+                                    sc.SubCategoryId
+                                  )}
+                                  onChange={() =>
+                                    handleTechnologyChange(sc.SubCategoryId)
+                                  }
+                                  style={{ marginTop: 2 }}
+                                />
+
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    lineHeight: "1.4",
+                                    wordBreak: "break-word",
+                                  }}
+                                >
+                                  {sc.SubCategoryName}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                  {/* OPPORTUNITY CONTACTS */}
+                  <div style={{ marginTop: 16 }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <label style={{ fontWeight: 600 }}>
+                        Opportunity Contacts
+                      </label>
+                      <button
+                        style={addBtn}
+                        onClick={() => {
+                          setSelectedOppContactIndex(null);
+                          setOppContactForm(EMPTY_OPP_CONTACT_FORM);
+                          setOpportunityView("CONTACT");
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
 
-                {/* Engagement Model */}
-                <div style={{ flex: 1 }}>
-                  <label>Engagement Model*</label>
-                  <select style={inputBox}>
-                    <option>- - Select Engagement Model - -</option>
-                    <option>Competence Center (ODC)</option>
-                    <option>Time & Material</option>
-                    <option>Fixed Bid</option>
-                    <option>Retainer</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* TECHNOLOGY */}
-              <label style={{ marginTop: 10 }}>Technology*</label>
-
-              <div
-                style={{
-                  border: "1px solid #ccc",
-                  padding: 20,
-                  borderRadius: 6,
-                }}
-              >
-                <div
-                  style={{ display: "flex", justifyContent: "space-between" }}
-                >
-                  {/* DEVELOPMENT STACK */}
-                  <div>
-                    <b>Development Stack</b>
-                    <div>
-                      <input type="checkbox" /> &nbsp; LAMP
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; MEAN
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; MERN
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Java Spring
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; .NET Stack
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Other
-                    </div>
+                    {/* SAVED CONTACT SUMMARY */}
+                    {oppContacts.map((c, i) => (
+                      <div
+                        key={i}
+                        onClick={() => {
+                          setSelectedOppContactIndex(i);
+                          setOppContactForm(c); // prefill form
+                          setOpportunityView("CONTACT"); // open form view
+                        }}
+                        style={{
+                          marginTop: 8,
+                          padding: 10,
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 6,
+                          background: "#f9fafb",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ fontSize: 13 }}>
+                          <strong>Name:</strong> {c.FullName}
+                        </div>
+                        <div style={{ fontSize: 12 }}>
+                          <strong>Phone:</strong> {c.MobilePhone}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#3a77e3" }}>
+                          <strong>Email:</strong> {c.WorkEmail}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {opportunityView === "CONTACT" && (
+                <>
+                  <div
+                    style={{
+                      background: "#3a77e3",
+                      color: "#fff",
+                      padding: "12px 16px",
+                      fontWeight: 600,
+                      fontSize: 15,
+                      borderRadius: 6,
+                      marginBottom: 16,
+                    }}
+                  >
+                    Opportunity Contact Form
                   </div>
 
-                  {/* CLOUD PLATFORMS */}
-                  <div>
-                    <b>Cloud Computing Platforms</b>
-                    <div>
-                      <input type="checkbox" /> &nbsp; AWS
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Azure
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Google Cloud Platform
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; IBM Cloud
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Oracle Cloud
-                      Infrastructure
-                    </div>
+                  {/* BASIC INFO */}
+                  <div style={formRow3}>
+                    <input
+                      style={inputBox}
+                      placeholder="Full Name *"
+                      value={oppContactForm.FullName}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          FullName: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="First Name"
+                      value={oppContactForm.FirstName}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          FirstName: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Last Name"
+                      value={oppContactForm.LastName}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          LastName: e.target.value,
+                        })
+                      }
+                    />
                   </div>
 
-                  {/* DATABASE TECHNOLOGIES */}
-                  <div>
-                    <b>Database Technologies</b>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Oracle Database
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; SQL Server
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; MySQL
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; PostgreSQL
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; MongoDB
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Cassandra
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Snowflake
-                    </div>
-                    <div>
-                      <input type="checkbox" /> &nbsp; Amazon Redshift
+                  <div style={formRow3}>
+                    <input
+                      style={inputBox}
+                      placeholder="Preferred Name / Nickname"
+                      value={oppContactForm.PreferredName}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          PreferredName: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Job Title"
+                      value={oppContactForm.JobTitle}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          JobTitle: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Department / Function"
+                      value={oppContactForm.Department}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          Department: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  {/* PERSONAL DETAILS */}
+                  <div style={formRow3}>
+                    <select
+                      style={inputBox}
+                      value={oppContactForm.SeniorityLevel}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          SeniorityLevel: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Seniority Level</option>
+                      <option value="C-Level">C-Level</option>
+                      <option value="VP">VP</option>
+                      <option value="Director">Director</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Individual Contributor">
+                        Individual Contributor
+                      </option>
+                    </select>
+
+                    <select
+                      style={inputBox}
+                      value={oppContactForm.Gender}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          Gender: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+
+                    <input
+                      type="date"
+                      style={inputBox}
+                      value={oppContactForm.DateOfBirth}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          DateOfBirth: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  {/* ORG INFO */}
+                  <div style={formRow3}>
+                    <input
+                      style={inputBox}
+                      placeholder="Company Name"
+                      value={oppContactForm.CompanyName}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          CompanyName: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Division / Business Unit"
+                      value={oppContactForm.Division}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          Division: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Office / Branch Location"
+                      value={oppContactForm.OfficeLocation}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          OfficeLocation: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div style={formRow3}>
+                    <select
+                      style={inputBox}
+                      value={oppContactForm.Industry}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          Industry: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Industry</option>
+                      <option value="IT / Software">IT / Software</option>
+                      <option value="Healthcare">Healthcare</option>
+                      <option value="Banking & Finance">
+                        Banking & Finance
+                      </option>
+                      <option value="Manufacturing">Manufacturing</option>
+                      <option value="Retail">Retail</option>
+                      <option value="Education">Education</option>
+                      <option value="Pharma">Pharma</option>
+                      <option value="Telecom">Telecom</option>
+                    </select>
+
+                    <input
+                      style={inputBox}
+                      placeholder="Company Website"
+                      value={oppContactForm.CompanyWebsite}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          CompanyWebsite: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Company LinkedIn Page"
+                      value={oppContactForm.CompanyLinkedInPage}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          CompanyLinkedInPage: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  {/* CONTACT DETAILS */}
+                  <div style={formRow3}>
+                    <input
+                      style={inputBox}
+                      placeholder="Work Email *"
+                      value={oppContactForm.WorkEmail}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          WorkEmail: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Personal Email"
+                      value={oppContactForm.PersonalEmail}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          PersonalEmail: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Direct Phone"
+                      value={oppContactForm.DirectPhone}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          DirectPhone: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div style={formRow3}>
+                    <input
+                      style={inputBox}
+                      placeholder="Mobile Phone *"
+                      value={oppContactForm.MobilePhone}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          MobilePhone: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="Office Phone"
+                      value={oppContactForm.OfficePhone}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          OfficePhone: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      style={inputBox}
+                      placeholder="LinkedIn Profile URL"
+                      value={oppContactForm.LinkedInProfileUrl}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          LinkedInProfileUrl: e.target.value,
+                        })
+                      }
+                    />
+                    {/* ORG STRUCTURE */}
+                    <select
+                      style={inputBox}
+                      value={oppContactForm.HeadquartersLocation}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          HeadquartersLocation: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Headquarters / Local Office</option>
+                      <option value="Headquarters">Headquarters</option>
+                      <option value="Regional Office">Regional Office</option>
+                      <option value="Branch Office">Branch Office</option>
+                      <option value="Remote">Remote</option>
+                    </select>
+
+                    <input
+                      type="number"
+                      style={inputBox}
+                      placeholder="Employee Size"
+                      value={oppContactForm.EmployeeSize}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          EmployeeSize: e.target.value,
+                        })
+                      }
+                    />
+
+                    <input
+                      style={inputBox}
+                      placeholder="Profile Picture URL"
+                      value={oppContactForm.ProfilePictureUrl}
+                      onChange={(e) =>
+                        setOppContactForm({
+                          ...oppContactForm,
+                          ProfilePictureUrl: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  {/* ACTIONS */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginTop: 12,
+                    }}
+                  >
+                    {selectedOppContactIndex !== null && (
+                      <button
+                        style={{
+                          padding: "8px 14px",
+                          background: "#ef4444",
+                          color: "#fff",
+                          borderRadius: 4,
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          const updated = oppContacts.filter(
+                            (_, i) => i !== selectedOppContactIndex
+                          );
+                          setOppContacts(updated);
+                          setOppContactForm(EMPTY_OPP_CONTACT_FORM);
+                          setSelectedOppContactIndex(null);
+                          setOpportunityView("OPPORTUNITY");
+                        }}
+                      >
+                        Delete Contact
+                      </button>
+                    )}
+
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button
+                        style={cancelBtn}
+                        onClick={() => {
+                          setOppContactForm(EMPTY_OPP_CONTACT_FORM);
+                          setSelectedOppContactIndex(null);
+                          setOpportunityView("OPPORTUNITY");
+                        }}
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        style={saveBtn}
+                        onClick={async () => {
+                          if (
+                            !oppContactForm.FullName ||
+                            !oppContactForm.MobilePhone ||
+                            !oppContactForm.WorkEmail
+                          ) {
+                            alert("Please fill required fields");
+                            return;
+                          }
+
+                          const method = oppContactForm.OpportunityContactId
+                            ? "PUT"
+                            : "POST";
+
+                          await fetch(
+                            `/api/employees/leads/${effectiveLeadId}/opportunities/${currentOpportunityId}/contacts`,
+                            {
+                              method,
+                              headers: { "Content-Type": "application/json" },
+                              body:
+                                method === "PUT"
+                                  ? JSON.stringify(oppContactForm) // UPDATE
+                                  : JSON.stringify([oppContactForm]), // INSERT
+                            }
+                          );
+
+                          // Update UI
+                          if (selectedOppContactIndex !== null) {
+                            const updated = [...oppContacts];
+                            updated[selectedOppContactIndex] = oppContactForm;
+                            setOppContacts(updated);
+                          } else {
+                            setOppContacts([...oppContacts, oppContactForm]);
+                          }
+
+                          setOppContactForm(EMPTY_OPP_CONTACT_FORM);
+                          setSelectedOppContactIndex(null);
+                          setOpportunityView("OPPORTUNITY");
+                        }}
+                      >
+                        Save Contact
+                      </button>
                     </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
-            {/* FOOTER */}
+            {/* Footer */}
             <div style={modalFooter}>
               <button
                 style={cancelBtn}
-                onClick={() => setShowAddOpportunity(false)}
+                onClick={() => {
+                  setShowAddOpportunity(false);
+                  setMode("add");
+                  setCurrentOpportunityId(null);
+                  resetOpportunityForm();
+                }}
               >
                 Cancel
               </button>
-              <button style={saveBtn}>Save Opportunity</button>
+              {opportunityView === "OPPORTUNITY" && (
+                <button style={saveBtn} onClick={handleSaveOpportunity}>
+                  Save Opportunity
+                </button>
+              )}
             </div>
           </div>
         </div>
