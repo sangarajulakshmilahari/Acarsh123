@@ -1,22 +1,68 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 type EntityType = "lead" | "prospect" | "account";
 
 type AddLeadPageProps = {
   onBack: () => void;
-  type?: EntityType; 
+  type?: EntityType;
 };
 
-export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps) {
+export default function AddLeadPage({
+  onBack,
+  type = "lead",
+}: AddLeadPageProps) {
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [leadSources, setLeadSources] = useState<any[]>([]);
+  const [ownerNames, setOwnerNames] = useState<any[]>([]);
+  const [contactRoles, setContactRoles] = useState<any[]>([]);
+
+  // 🔹 Texts based on type
+  const entityLabel: string =
+    type === "prospect" ? "Prospect" : type === "account" ? "Account" : "Lead";
+
+  const entityLabelLower = entityLabel.toLowerCase();
+
+  const getAccountType = (type: EntityType) => {
+    if (type === "lead") return 10;
+    if (type === "prospect") return 20;
+    if (type === "account") return 30;
+    return 10;
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0]; // YYYY-MM-DD
+  };
+
+  const getCurrentDateTimeLocal = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
+  };
   const [form, setForm] = useState({
     CompanyName: "",
     CompanyLocation: "",
     LeadSource: "",
-    LeadDate: "",
+    LeadDate: getTodayDate(),
     StatusName: "New",
     OwnerName: "",
+    AccountType: getAccountType(type),
 
     // Lead / Prospect / Account Details
     ExpansionAreas: "",
@@ -34,36 +80,32 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
 
     // Quick Actions
     AddReminder: false,
+    ReminderDateTime: getCurrentDateTimeLocal(),
+    ReminderNote: "",
   });
 
-  // 🔹 Texts based on type
-  const entityLabel: string =
-    type === "prospect" ? "Prospect" : type === "account" ? "Account" : "Lead";
-
-  const entityLabelLower = entityLabel.toLowerCase();
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
+  useEffect(() => {
+    fetch("/api/masters/others")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.companies) {
+          setCompanies(data.companies);
+          setLeadSources(data.leadSources);
+          setOwnerNames(data.ownername);
+          setContactRoles(data.Role);
+        }
+      });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-  if (!form.ContactRoleName) {
-    alert("Please select Contact Role");
-    return;
-  }
 
-  console.log("Submitting lead data:", form);
+    if (!form.ContactRoleName) {
+      alert("Please select Contact Role");
+      return;
+    }
+
+    console.log("Submitting lead data:", form);
 
     // Determine the API endpoint based on type
     let endpoint = "/api/employees/leads";
@@ -92,7 +134,6 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
         width: "100%",
         overflowY: "auto",
         boxSizing: "border-box",
-
       }}
     >
       {/* PAGE HEADING */}
@@ -146,9 +187,13 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                   style={inputStyle}
                 >
                   <option value="">Select Company</option>
-                  <option value="Adroitent">Adroitent</option>
-                  <option value="TCS">TCS</option>
-                  <option value="Infosys">Infosys</option>
+
+                  {Array.isArray(companies) &&
+                    companies.map((c, index) => (
+                      <option key={index} value={c.CompanyName}>
+                        {c.CompanyName}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -173,10 +218,13 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                   style={inputStyle}
                 >
                   <option value="">Select Source</option>
-                  <option value="Website">Website</option>
-                  <option value="LinkedIn">LinkedIn</option>
-                  <option value="Email Campaign">Email Campaign</option>
-                  <option value="Referral">Referral</option>
+
+                  {Array.isArray(leadSources) &&
+                    leadSources.map((ls, index) => (
+                      <option key={index} value={ls.LeadSource}>
+                        {ls.LeadSource}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -207,6 +255,21 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
               </div>
 
               <div>
+                <label style={labelStyle}>Account Type</label>
+                <input
+                  type="text"
+                  name="AccountType"
+                  value={form.AccountType}
+                  readOnly
+                  style={{
+                    ...inputStyle,
+                    background: "#e5e7eb",
+                    cursor: "not-allowed",
+                  }}
+                />
+              </div>
+
+              <div>
                 <label style={labelStyle}>
                   Lead Owner <span style={{ color: "#ef4444" }}>*</span>
                 </label>
@@ -216,10 +279,14 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                   onChange={handleChange}
                   style={inputStyle}
                 >
-                  <option value="">Select Lead Owner</option>
-                  <option value="Partha Bommireddy (BP)">Partha Bommireddy (BP)</option>
-                  <option value="Mahesh Kukutlawar">Mahesh Kukutlawar</option>
-                  <option value="Sriram Cherukuvada">Sriram Cherukuvada</option>
+                  <option value="">Select Owner</option>
+
+                  {Array.isArray(ownerNames) &&
+                    ownerNames.map((on, index) => (
+                      <option key={index} value={on.UserName}>
+                        {on.UserName}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>
@@ -259,8 +326,12 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                     fontSize: 12,
                     color: "#6b7280",
                     marginTop: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
+                  <i className="fas fa-info-circle"></i>
                   Separate multiple tags with commas
                 </p>
               </div>
@@ -317,15 +388,18 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                 </label>
                 <select
                   name="ContactRoleName"
-                  style={inputStyle}
                   value={form.ContactRoleName}
                   onChange={handleChange}
+                  style={inputStyle}
                 >
-                  <option value="">Select role...</option>
-                  <option value="Decision Maker">Decision Maker</option>
-                  <option value="Influencer">Influencer</option>
-                  <option value="Initiator">Initiator</option>
-                  <option value="End User">End User</option>
+                  <option value="">Select Role</option>
+
+                  {Array.isArray(contactRoles) &&
+                    contactRoles.map((role, index) => (
+                      <option key={index} value={role.Role}>
+                        {role.Role}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -392,6 +466,7 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                 alignItems: "center",
                 gap: 8,
                 fontSize: 14,
+                fontWeight: 500,
               }}
             >
               <input
@@ -400,8 +475,51 @@ export default function AddLeadPage({ onBack, type = "lead" }: AddLeadPageProps)
                 checked={form.AddReminder}
                 onChange={handleChange}
               />
-              Add Reminder
+               Add Reminder
             </label>
+
+            {/* 🔔 Scheduler UI */}
+            {form.AddReminder && (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: 16,
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 8,
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 20,
+                  }}
+                >
+                  <div>
+                    <label style={labelStyle}>Reminder Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      name="ReminderDateTime"
+                      value={form.ReminderDateTime}
+                      onChange={handleChange}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Reminder Note</label>
+                    <input
+                      type="text"
+                      name="ReminderNote"
+                      placeholder="Follow up on proposal"
+                      value={form.ReminderNote}
+                      onChange={handleChange}
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -459,7 +577,7 @@ const textareaStyle: React.CSSProperties = {
   marginTop: 4,
   height: 80,
   fontSize: 13,
-  resize: "vertical",
+  resize: "none",
   boxSizing: "border-box",
 };
 
@@ -499,6 +617,7 @@ const btnPrimary: React.CSSProperties = {
   fontWeight: 600,
 };
 
+
 const btnSecondary: React.CSSProperties = {
   background: "#6b7280",
   color: "white",
@@ -509,3 +628,4 @@ const btnSecondary: React.CSSProperties = {
   cursor: "pointer",
   fontWeight: 500,
 };
+

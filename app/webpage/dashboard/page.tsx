@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
 
 export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
   const [totalLeads, setTotalLeads] = useState<number>(0);
   const [statusCounts, setStatusCounts] = useState<Record<number, number>>({});
   const [leadsByStatus, setLeadsByStatus] = useState<
@@ -24,8 +25,6 @@ export default function DashboardPage() {
   const ownerChart = useRef<Chart | null>(null);
   const monthlyChart = useRef<Chart | null>(null);
 
-  
-
   useEffect(() => {
     fetch("/api/dashboard")
       .then((res) => res.json())
@@ -42,6 +41,7 @@ export default function DashboardPage() {
         setLeadsByOwner(data.leadsByOwner);
         setMonthlyTrends(data.monthlyTrends);
 
+        setLoading(false); // ✅ VERY IMPORTANT
       });
   }, []);
 
@@ -179,124 +179,104 @@ export default function DashboardPage() {
   }, [leadsByOwner]);
 
   const months = [
-  "Jan 2025","Feb 2025","Mar 2025","Apr 2025","May 2025","Jun 2025",
-  "Jul 2025","Aug 2025","Sep 2025","Oct 2025","Nov 2025","Dec 2025"
-];
+    "Jan 2025",
+    "Feb 2025",
+    "Mar 2025",
+    "Apr 2025",
+    "May 2025",
+    "Jun 2025",
+    "Jul 2025",
+    "Aug 2025",
+    "Sep 2025",
+    "Oct 2025",
+    "Nov 2025",
+    "Dec 2025",
+  ];
 
-const owners = Array.from(
-  new Set(monthlyTrends.map(m => m.OwnerName))
-);
+  const owners = Array.from(new Set(monthlyTrends.map((m) => m.OwnerName)));
 
-const datasets = owners.map((owner, index) => ({
-  label: owner,
-  data: months.map(month => {
-    const record = monthlyTrends.find(
-      m => m.MonthYear === month && m.OwnerName === owner
-    );
-    return record ? record.count : 0;
-  }),
-  backgroundColor: [
-    "#007bff",
-    "#28a745",
-    "#ffc107",
-    "#dc3545",
-    "#17a2b8",
-  ][index % 5],
-}));
+  const datasets = owners.map((owner, index) => ({
+    label: owner,
+    data: months.map((month) => {
+      const record = monthlyTrends.find(
+        (m) => m.MonthYear === month && m.OwnerName === owner
+      );
+      return record ? record.count : 0;
+    }),
+    backgroundColor: ["#007bff", "#28a745", "#ffc107", "#dc3545", "#17a2b8"][
+      index % 5
+    ],
+  }));
 
-useEffect(() => {
-  if (!monthlyRef.current || monthlyTrends.length === 0) return;
+  useEffect(() => {
+    if (!monthlyRef.current || monthlyTrends.length === 0) return;
 
-  monthlyChart.current?.destroy();
-
-  monthlyChart.current = new Chart(monthlyRef.current, {
-    type: "bar",
-    data: {
-      labels: months, // X-axis: Jan 2025 → Dec 2025
-      datasets,
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            title: (items) => items[0].label, // "Aug 2025"
-            label: (item) =>
-              `${item.dataset.label}: ${item.raw}`, // "Mahesh Kukutlawar: 29"
-          },
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            stepSize: 5,
-            precision: 0,
-          },
-          title: {
-            display: true,
-            // text: "Leads Count",
-          },
-        },
-        x: {
-          title: {
-            display: true,
-            // text: "Month",
-          },
-        },
-      },
-    },
-  });
-
-  return () => {
     monthlyChart.current?.destroy();
-  };
-}, [monthlyTrends]);
 
+    monthlyChart.current = new Chart(monthlyRef.current, {
+      type: "bar",
+      data: {
+        labels: months, // X-axis: Jan 2025 → Dec 2025
+        datasets,
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => items[0].label, // "Aug 2025"
+              label: (item) => `${item.dataset.label}: ${item.raw}`, // "Mahesh Kukutlawar: 29"
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 5,
+              precision: 0,
+            },
+            title: {
+              display: true,
+              // text: "Leads Count",
+            },
+          },
+          x: {
+            title: {
+              display: true,
+              // text: "Month",
+            },
+          },
+        },
+      },
+    });
 
-  // ---------- Monthly Trends ----------
-  // if (monthlyRef.current) {
-  //   monthlyChart.current?.destroy();
-  //   monthlyChart.current = new Chart(monthlyRef.current, {
-  //     type: "bar",
-  //     data: {
-  //       labels: ["Aug 2025", "Sep 2025", "Oct 2025", "Nov 2025", "Dec 2025"],
-  //       datasets: [
-  //         {
-  //           label: "Mahesh Kukutlawar",
-  //           data: [29, 0, 0, 0, 0],
-  //           backgroundColor: "#007bff",
-  //         },
-  //         {
-  //           label: "Venky Ramana",
-  //           data: [0, 0, 0, 10, 4],
-  //           backgroundColor: "#28a745",
-  //         },
-  //         {
-  //           label: "Naveen Gogineni",
-  //           data: [0, 3, 6, 0, 0],
-  //           backgroundColor: "#ffc107",
-  //         },
-  //       ],
-  //     },
-  //     options: {
-  //       responsive: true,
-  //       maintainAspectRatio: false,
-  //     },
-  //   });
-  // }
+    return () => {
+      monthlyChart.current?.destroy();
+    };
+  }, [monthlyTrends]);
 
-  //   return () => {
-  //     statusChart.current?.destroy();
-  //     ownerChart.current?.destroy();
-  //     monthlyChart.current?.destroy();
-  //   };
-  // }, []);
-
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#f8f9fa",
+          fontSize: 16,
+          fontWeight: 500,
+          color: "#6b7280",
+        }}
+      >
+        {/* Loading dashboard... */}
+      </div>
+    );
+  }
   return (
     <>
-    
       <div className="dashboard-container">
         {/* HEADER */}
         <div className="dashboard-header">
@@ -305,7 +285,6 @@ useEffect(() => {
             Total Leads: <strong>{totalLeads}</strong>
           </div>
         </div>
-        
 
         {/* STATUS CARDS */}
         <div className="status-cards-grid">
@@ -384,7 +363,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* CSS – SAME FILE */}
       <style jsx>{`
         .dashboard-container {
           padding: 20px;

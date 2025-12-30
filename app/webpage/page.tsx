@@ -16,7 +16,6 @@ import DashboardPage from "./dashboard/page";
 
 // Tabs
 type TabKey =
-  | "home"
   | "dashboard"
   | "leads"
   | "addLead"
@@ -43,7 +42,7 @@ export default function HelloPage(): JSX.Element {
     (s: RootState) => (s as any).employees ?? []
   );
 
-  const [activeTab, setActiveTab] = useState<TabKey>("home");
+  const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [loading, setLoading] = useState(false);
   const [employeesLocal, setEmployeesLocal] = useState<Employee[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +60,6 @@ export default function HelloPage(): JSX.Element {
     if (
       tab &&
       [
-        "home",
         "dashboard",
         "leads",
         "Prospect",
@@ -74,7 +72,6 @@ export default function HelloPage(): JSX.Element {
   }, [searchParams]);
 
   const tabIcons: Record<TabKey, React.ReactNode> = {
-    home: "",
     dashboard: (
       <Image src="/dashboard1.png" alt="Dashboard" width={20} height={20} />
     ),
@@ -204,12 +201,6 @@ export default function HelloPage(): JSX.Element {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "home":
-        return (
-          <h1 style={{ margin: 0, textAlign: "center", fontWeight: 300 }}>
-            Welcome{user?.name ? `, ${user.name}` : ""}{" "}
-          </h1>
-        );
 
       case "dashboard":
         return <DashboardPage />;

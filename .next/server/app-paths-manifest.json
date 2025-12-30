@@ -1,11 +1,7 @@
 {
   "/page": "app/page.js",
-  "/api/auth/route": "app/api/auth/route.js",
-  "/api/dashboard/route": "app/api/dashboard/route.js",
   "/webpage/page": "app/webpage/page.js",
   "/api/employees/leads/route": "app/api/employees/leads/route.js",
-  "/api/employees/leads/[leadID]/route": "app/api/employees/leads/[leadID]/route.js",
-  "/api/employees/leads/[leadID]/opportunities/route": "app/api/employees/leads/[leadID]/opportunities/route.js",
-  "/api/masters/categories-with-subcategories/route": "app/api/masters/categories-with-subcategories/route.js",
-  "/api/employees/leads/[leadID]/opportunities/[OpportunityId]/contacts/route": "app/api/employees/leads/[leadID]/opportunities/[OpportunityId]/contacts/route.js"
+  "/api/masters/others/route": "app/api/masters/others/route.js",
+  "/api/employees/leads/[leadID]/route": "app/api/employees/leads/[leadID]/route.js"
 }

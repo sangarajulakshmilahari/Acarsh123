@@ -161,6 +161,27 @@ export default function LeadDetailsPage({
   };
 
   const [oppContactForm, setOppContactForm] = useState(EMPTY_OPP_CONTACT_FORM);
+  const [opportunityStatuses, setOpportunityStatuses] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/masters/others")
+      .then((res) => res.json())
+      .then((data) => {
+        // ✅ ensure we always store an array
+        if (Array.isArray(data)) {
+          setOpportunityStatuses(data);
+        } else if (Array.isArray(data?.data)) {
+          setOpportunityStatuses(data.data);
+        } else {
+          console.error("Unexpected API response:", data);
+          setOpportunityStatuses([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load opportunity statuses", err);
+        setOpportunityStatuses([]);
+      });
+  }, []);
 
   // ---------------- FORM STATES ----------------
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
@@ -325,16 +346,16 @@ export default function LeadDetailsPage({
     if (!value) return "—";
 
     const d = new Date(value);
-    if (isNaN(d.getTime())) return value;
+    // if (isNaN(d.getTime())) return value;
 
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const year = d.getFullYear();
 
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
+    // const hours = String(d.getHours()).padStart(2, "0");
+    // const minutes = String(d.getMinutes()).padStart(2, "0");
 
-    return `${day}-${month}-${year} ${hours}:${minutes}`;
+    return `${day}-${month}-${year}`;
   };
 
   // save reminder
@@ -394,60 +415,60 @@ export default function LeadDetailsPage({
     }
   };
 
-    const autoSaveActivityField = async (
-      index: number,
-      field: keyof Activity,
-      value: any
-    ) => {
-      const activity = lead?.Activities?.[index];
-      if (!activity || !lead?.LeadId) return;
+  const autoSaveActivityField = async (
+    index: number,
+    field: keyof Activity,
+    value: any
+  ) => {
+    const activity = lead?.Activities?.[index];
+    if (!activity || !lead?.LeadId) return;
 
-      try {
-        await fetch(`/api/employees/leads/${lead.LeadId}/activities`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ActivityId: activity.ActivityId,
-            Mode: field === "Mode" ? value : activity.Mode,
-            Notes: field === "Notes" ? value : activity.Notes,
-            Status: field === "Status" ? value : activity.Status,
-            ActivityDate: activity.ActivityDate,
-          }),
-        });
+    try {
+      await fetch(`/api/employees/leads/${lead.LeadId}/activities`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ActivityId: activity.ActivityId,
+          Mode: field === "Mode" ? value : activity.Mode,
+          Notes: field === "Notes" ? value : activity.Notes,
+          Status: field === "Status" ? value : activity.Status,
+          ActivityDate: activity.ActivityDate,
+        }),
+      });
 
-        fetchLeadDetails();
-      } catch (err) {
-        console.error("Activity auto-save failed", err);
-      }
-    };
-    const autoSaveReminderField = async (
-      index: number,
-      field: keyof Reminder,
-      value: any
-    ) => {
-      const reminder = lead?.Reminders?.[index];
-      if (!reminder || !lead?.LeadId) return;
+      fetchLeadDetails();
+    } catch (err) {
+      console.error("Activity auto-save failed", err);
+    }
+  };
+  const autoSaveReminderField = async (
+    index: number,
+    field: keyof Reminder,
+    value: any
+  ) => {
+    const reminder = lead?.Reminders?.[index];
+    if (!reminder || !lead?.LeadId) return;
 
-      try {
-        await fetch(`/api/employees/leads/${lead.LeadId}/reminders`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ReminderId: reminder.ReminderId,
-            ReminderDate:
-              field === "ReminderDate" ? value : reminder.ReminderDate,
-            Notes: field === "Notes" ? value : reminder.Notes,
-            Status: field === "Status" ? value : reminder.Status,
-            Notification:
-              field === "Notification" ? value : reminder.Notification,
-          }),
-        });
+    try {
+      await fetch(`/api/employees/leads/${lead.LeadId}/reminders`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ReminderId: reminder.ReminderId,
+          ReminderDate:
+            field === "ReminderDate" ? value : reminder.ReminderDate,
+          Notes: field === "Notes" ? value : reminder.Notes,
+          Status: field === "Status" ? value : reminder.Status,
+          Notification:
+            field === "Notification" ? value : reminder.Notification,
+        }),
+      });
 
-        fetchLeadDetails();
-      } catch (err) {
-        console.error("Reminder auto-save failed", err);
-      }
-    };
+      fetchLeadDetails();
+    } catch (err) {
+      console.error("Reminder auto-save failed", err);
+    }
+  };
 
   // edit opportunity
 
@@ -522,8 +543,6 @@ export default function LeadDetailsPage({
       return;
     }
 
-    
-
     // 1️⃣ SAVE OPPORTUNITY
     const res = await fetch(`/api/employees/leads/${id}/opportunities`, {
       method: isEdit ? "PUT" : "POST",
@@ -544,7 +563,6 @@ export default function LeadDetailsPage({
       alert(err.error || "Failed to save opportunity");
       return;
     }
-
 
     // 2️⃣ READ RESPONSE (IMPORTANT)
     const savedOpportunity = await res.json();
@@ -912,7 +930,7 @@ export default function LeadDetailsPage({
     border: "1px solid rgba(148,148,148,0.4)",
     backgroundColor: "#252b36",
     color: "#ffffff",
-    position: "sticky",
+    // position: "sticky",
     top: 0,
     zIndex: 1,
     fontWeight: 600,
@@ -929,29 +947,15 @@ export default function LeadDetailsPage({
 
   const tableWrap: React.CSSProperties = {
     background: "#fff",
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 6,
+    // padding: 12,
     boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
     border: "1px solid #e6e6e6",
     marginBottom: 16,
+     overflow: "hidden"
   };
 
-  const fabStyle: React.CSSProperties = {
-    position: "fixed",
-    right: 28,
-    bottom: 28,
-    width: 56,
-    height: 56,
-    background: "#3a77e3",
-    borderRadius: "50%",
-    color: "#fff",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    fontSize: 28,
-    cursor: "pointer",
-    boxShadow: "0 6px 16px rgba(0,0,0,0.18)",
-  };
+  
   const addBtn = {
     backgroundColor: "#3a77e3",
     color: "white",
@@ -982,47 +986,47 @@ export default function LeadDetailsPage({
     zIndex: 9999,
   };
   const modalBox: React.CSSProperties = {
-    width: "60%",
-    maxWidth: 1100,
     background: "#fff",
-    borderRadius: 8,
+    borderRadius: 6, // ⬅ tighter corners (matches 2nd UI)
     overflow: "hidden",
-    maxHeight: "85vh",
+    maxHeight: "80vh",
     display: "flex",
+    width: 520, // ⬅ exact balanced width
     flexDirection: "column",
   };
 
   const modalHeader: React.CSSProperties = {
     background: "#3a77e3",
     color: "white",
-    padding: 15,
+    padding: "14px 20px", // 🔥 align with body/footer
     fontSize: 15,
     fontWeight: "bold",
-    flexShrink: 0, // 🔑 important
+    flexShrink: 0, // 🔒 never shrink
   };
+
   const modalBody: React.CSSProperties = {
-    padding: 20,
+    padding: "14px 16px", // ⬅ tighter padding
     display: "flex",
     flexDirection: "column",
-    gap: 8,
+    gap: 10, // ⬅ better vertical spacing
     fontSize: 13,
-    overflowY: "auto", // ✅ scroll happens here
-    flex: 1, // ✅ takes remaining height
+    overflowY: "auto",
+    flex: 1,
     boxSizing: "border-box",
   };
 
   const modalFooter: React.CSSProperties = {
-    padding: 10,
+    padding: "12px 20px",
     display: "flex",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     gap: 10,
-    flexShrink: 0, // 🔑 keeps footer visible
+    flexShrink: 0, // 🔒 never shrink
     background: "#fff",
     borderTop: "1px solid #e5e7eb",
   };
 
   const inputBox: React.CSSProperties = {
-    width: "100%",
+    width: 260,
     maxWidth: "100%",
     height: 36,
     padding: "6px 10px",
@@ -1063,6 +1067,7 @@ export default function LeadDetailsPage({
     display: "flex",
     flexDirection: "column",
     gap: 6,
+   width: 250,  
   };
 
   const labelStyle: React.CSSProperties = {
@@ -1070,14 +1075,8 @@ export default function LeadDetailsPage({
     fontWeight: 600,
   };
 
-  const inputStyle: React.CSSProperties = {
-    height: 36,
-    padding: "6px 10px",
-    borderRadius: 6,
-    border: "1px solid #cbd5e1",
-    fontSize: 13,
-    width: "100%",
-  };
+
+  
 
   // MAIN RENDER
 
@@ -1330,8 +1329,8 @@ export default function LeadDetailsPage({
         <button style={addBtn} onClick={() => setShowAddReminder(true)}>
           +
         </button>
-      </div>
-      <div style={tableWrap}>
+       </div>
+       <div style={tableWrap}>
         <table
           style={{
             width: "100%",
@@ -1351,28 +1350,8 @@ export default function LeadDetailsPage({
             {(lead.Reminders || []).map((r, i) => (
               <tr key={r.ReminderId}>
                 {/* Reminder Date */}
-                <td style={tdStyle}>{r.ReminderDate}</td>
-                {/* <td
-        style={tdStyle}
-        onClick={() => setEditingCell(`rem-date-${r.ReminderId}`)}
-      >
-        {editingCell === `rem-date-${r.ReminderId}` ? (
-          <input
-            autoFocus
-            type="date"
-            style={inputBox}
-            defaultValue={r.ReminderDate || ""}
-            onBlur={(e) => {
-              if (isValueChanged(r.ReminderDate, e.target.value)) {
-                autoSaveReminderField(i, "ReminderDate", e.target.value);
-              }
-              setEditingCell(null);
-            }}
-          />
-        ) : (
-          r.ReminderDate || "—"
-        )}
-      </td> */}
+                <td style={tdStyle}>{formatDateTime(r.ReminderDate)}</td>
+                
 
                 {/* Notes */}
                 <td
@@ -1506,15 +1485,15 @@ export default function LeadDetailsPage({
       {/* -------------------- ADD ACTIVITY MODAL -------------------- */}
       {showAddActivity && (
         <div style={modalOverlay}>
-          <div style={modalBox}>
+          <div style={{ ...modalBox }}>
             {/* Header */}
             <div style={modalHeader}>Add Lead Activity</div>
 
             {/* Body */}
             <div style={modalBody}>
-              <label>Activity Type*</label>
+              <label style={{ fontWeight: 500 }}>Activity Type*</label>
               <select
-                style={inputBox}
+                style={{ ...inputBox, width: 480 }}
                 value={activityForm.Mode}
                 onChange={(e) =>
                   setActivityForm({ ...activityForm, Mode: e.target.value })
@@ -1529,9 +1508,9 @@ export default function LeadDetailsPage({
                 <option value="Follow-up">Follow-up</option>
               </select>
 
-              <label>Status*</label>
+              <label style={{ fontWeight: 500 }}>Status*</label>
               <select
-                style={inputBox}
+                style={{ ...inputBox, width: 480 }}
                 value={activityForm.Status}
                 onChange={(e) =>
                   setActivityForm({ ...activityForm, Status: e.target.value })
@@ -1547,9 +1526,9 @@ export default function LeadDetailsPage({
                 <option value="Converted">Converted</option>
               </select>
 
-              <label>Notes*</label>
+              <label style={{ fontWeight: 500 }}>Notes*</label>
               <textarea
-                style={{ ...inputBox, height: 60, width: 388 }}
+                style={{ ...inputBox, height: 60, width: 480, resize: "none" }}
                 value={activityForm.Notes}
                 onChange={(e) =>
                   setActivityForm({ ...activityForm, Notes: e.target.value })
@@ -1558,7 +1537,7 @@ export default function LeadDetailsPage({
             </div>
 
             {/* Footer */}
-            <div style={modalFooter}>
+            <div style={{ ...modalFooter, paddingLeft: 300 }}>
               <button
                 style={cancelBtn}
                 onClick={() => {
@@ -1732,9 +1711,15 @@ export default function LeadDetailsPage({
                     </div>
 
                     <div style={fieldGroup}>
-                      <label>Status *</label>
+                      <label>Status*</label>
                       <select
-                        style={inputBox}
+                        style={{
+                          ...inputBox,
+                          width: "100%", // ✅ important
+                          boxSizing: "border-box",
+                          maxHeight: 200,
+                          overflowY: "auto",
+                        }}
                         value={opportunityForm.statusId}
                         onChange={(e) =>
                           setOpportunityForm({
@@ -1745,15 +1730,16 @@ export default function LeadDetailsPage({
                       >
                         <option value="">-- Select Status --</option>
 
-                        <option value={1}>Imported / Campaign Lead</option>
-                        <option value={2}>
-                          Inbound Inquiry (Website / Event)
-                        </option>
-                        <option value={3}>
-                          Outbound Prospecting (Cold Email / LinkedIn / Call)
-                        </option>
-                        <option value={4}>Partner / Referral Lead</option>
-                        <option value={5}>Marketing Nurtured Lead</option>
+                        {Array.isArray(opportunityStatuses) &&
+                          opportunityStatuses.map((s) => (
+                            <option
+                              key={s.Opportunity_StatusId}
+                              value={s.Opportunity_StatusId}
+                              title={s.Opportunities_StatusName}
+                            >
+                              {s.Opportunities_StatusName}
+                            </option>
+                          ))}
                       </select>
                     </div>
 
@@ -1789,11 +1775,7 @@ export default function LeadDetailsPage({
                         display: "flex",
                         alignItems: "center",
                         gap: 10,
-                        border: "1px solid #cbd5e1",
-                        borderRadius: 6,
-                        padding: "1px 12px",
-                        height: 36,
-                        marginRight: 500,
+                    
                       }}
                     >
                       {[
@@ -1998,325 +1980,395 @@ export default function LeadDetailsPage({
 
                   {/* BASIC INFO */}
                   <div style={formRow3}>
-                    <input
-                      style={inputBox}
-                      placeholder="Full Name *"
-                      value={oppContactForm.FullName}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          FullName: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="First Name"
-                      value={oppContactForm.FirstName}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          FirstName: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Last Name"
-                      value={oppContactForm.LastName}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          LastName: e.target.value,
-                        })
-                      }
-                    />
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Full Name *</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.FullName}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            FullName: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>First Name</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.FirstName}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            FirstName: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Last Name</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.LastName}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            LastName: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
+                  {/* JOB DETAILS */}
                   <div style={formRow3}>
-                    <input
-                      style={inputBox}
-                      placeholder="Preferred Name / Nickname"
-                      value={oppContactForm.PreferredName}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          PreferredName: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Job Title"
-                      value={oppContactForm.JobTitle}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          JobTitle: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Department / Function"
-                      value={oppContactForm.Department}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          Department: e.target.value,
-                        })
-                      }
-                    />
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Preferred Name</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.PreferredName}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            PreferredName: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Job Title</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.JobTitle}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            JobTitle: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Department</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.Department}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            Department: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
+
                   {/* PERSONAL DETAILS */}
                   <div style={formRow3}>
-                    <select
-                      style={inputBox}
-                      value={oppContactForm.SeniorityLevel}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          SeniorityLevel: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Seniority Level</option>
-                      <option value="C-Level">C-Level</option>
-                      <option value="VP">VP</option>
-                      <option value="Director">Director</option>
-                      <option value="Manager">Manager</option>
-                      <option value="Individual Contributor">
-                        Individual Contributor
-                      </option>
-                    </select>
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Seniority Level</label>
+                      <select
+                        style={inputBox}
+                        value={oppContactForm.SeniorityLevel}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            SeniorityLevel: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Select</option>
+                        <option value="C-Level">C-Level</option>
+                        <option value="VP">VP</option>
+                        <option value="Director">Director</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Individual Contributor">
+                          Individual Contributor
+                        </option>
+                      </select>
+                    </div>
 
-                    <select
-                      style={inputBox}
-                      value={oppContactForm.Gender}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          Gender: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Gender</label>
+                      <select
+                        style={inputBox}
+                        value={oppContactForm.Gender}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            Gender: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Select</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
 
-                    <input
-                      type="date"
-                      style={inputBox}
-                      value={oppContactForm.DateOfBirth}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          DateOfBirth: e.target.value,
-                        })
-                      }
-                    />
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Date of Birth</label>
+                      <input
+                        type="date"
+                        style={inputBox}
+                        value={oppContactForm.DateOfBirth}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            DateOfBirth: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
-                  {/* ORG INFO */}
+                  {/* ORGANIZATION INFO */}
                   <div style={formRow3}>
-                    <input
-                      style={inputBox}
-                      placeholder="Company Name"
-                      value={oppContactForm.CompanyName}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          CompanyName: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Division / Business Unit"
-                      value={oppContactForm.Division}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          Division: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Office / Branch Location"
-                      value={oppContactForm.OfficeLocation}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          OfficeLocation: e.target.value,
-                        })
-                      }
-                    />
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Company Name</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.CompanyName}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            CompanyName: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Division</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.Division}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            Division: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Office Location</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.OfficeLocation}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            OfficeLocation: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
                   <div style={formRow3}>
-                    <select
-                      style={inputBox}
-                      value={oppContactForm.Industry}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          Industry: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Industry</option>
-                      <option value="IT / Software">IT / Software</option>
-                      <option value="Healthcare">Healthcare</option>
-                      <option value="Banking & Finance">
-                        Banking & Finance
-                      </option>
-                      <option value="Manufacturing">Manufacturing</option>
-                      <option value="Retail">Retail</option>
-                      <option value="Education">Education</option>
-                      <option value="Pharma">Pharma</option>
-                      <option value="Telecom">Telecom</option>
-                    </select>
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Industry</label>
+                      <select
+                        style={inputBox}
+                        value={oppContactForm.Industry}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            Industry: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Select</option>
+                        <option value="IT / Software">IT / Software</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Banking & Finance">
+                          Banking & Finance
+                        </option>
+                        <option value="Manufacturing">Manufacturing</option>
+                        <option value="Retail">Retail</option>
+                        <option value="Education">Education</option>
+                        <option value="Pharma">Pharma</option>
+                        <option value="Telecom">Telecom</option>
+                      </select>
+                    </div>
 
-                    <input
-                      style={inputBox}
-                      placeholder="Company Website"
-                      value={oppContactForm.CompanyWebsite}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          CompanyWebsite: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Company LinkedIn Page"
-                      value={oppContactForm.CompanyLinkedInPage}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          CompanyLinkedInPage: e.target.value,
-                        })
-                      }
-                    />
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Company Website</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.CompanyWebsite}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            CompanyWebsite: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Company LinkedIn Page</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.CompanyLinkedInPage}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            CompanyLinkedInPage: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
                   {/* CONTACT DETAILS */}
                   <div style={formRow3}>
-                    <input
-                      style={inputBox}
-                      placeholder="Work Email *"
-                      value={oppContactForm.WorkEmail}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          WorkEmail: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Personal Email"
-                      value={oppContactForm.PersonalEmail}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          PersonalEmail: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Direct Phone"
-                      value={oppContactForm.DirectPhone}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          DirectPhone: e.target.value,
-                        })
-                      }
-                    />
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Work Email *</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.WorkEmail}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            WorkEmail: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Personal Email</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.PersonalEmail}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            PersonalEmail: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Direct Phone</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.DirectPhone}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            DirectPhone: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
                   <div style={formRow3}>
-                    <input
-                      style={inputBox}
-                      placeholder="Mobile Phone *"
-                      value={oppContactForm.MobilePhone}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          MobilePhone: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="Office Phone"
-                      value={oppContactForm.OfficePhone}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          OfficePhone: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      style={inputBox}
-                      placeholder="LinkedIn Profile URL"
-                      value={oppContactForm.LinkedInProfileUrl}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          LinkedInProfileUrl: e.target.value,
-                        })
-                      }
-                    />
-                    {/* ORG STRUCTURE */}
-                    <select
-                      style={inputBox}
-                      value={oppContactForm.HeadquartersLocation}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          HeadquartersLocation: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Headquarters / Local Office</option>
-                      <option value="Headquarters">Headquarters</option>
-                      <option value="Regional Office">Regional Office</option>
-                      <option value="Branch Office">Branch Office</option>
-                      <option value="Remote">Remote</option>
-                    </select>
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Mobile Phone *</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.MobilePhone}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            MobilePhone: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
 
-                    <input
-                      type="number"
-                      style={inputBox}
-                      placeholder="Employee Size"
-                      value={oppContactForm.EmployeeSize}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          EmployeeSize: e.target.value,
-                        })
-                      }
-                    />
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Office Phone</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.OfficePhone}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            OfficePhone: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
 
-                    <input
-                      style={inputBox}
-                      placeholder="Profile Picture URL"
-                      value={oppContactForm.ProfilePictureUrl}
-                      onChange={(e) =>
-                        setOppContactForm({
-                          ...oppContactForm,
-                          ProfilePictureUrl: e.target.value,
-                        })
-                      }
-                    />
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>LinkedIn Profile URL</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.LinkedInProfileUrl}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            LinkedInProfileUrl: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div style={formRow3}>
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>
+                        Headquarters / Office Type
+                      </label>
+                      <select
+                        style={inputBox}
+                        value={oppContactForm.HeadquartersLocation}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            HeadquartersLocation: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Select</option>
+                        <option value="Headquarters">Headquarters</option>
+                        <option value="Regional Office">Regional Office</option>
+                        <option value="Branch Office">Branch Office</option>
+                        <option value="Remote">Remote</option>
+                      </select>
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Employee Size</label>
+                      <input
+                        type="number"
+                        style={inputBox}
+                        value={oppContactForm.EmployeeSize}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            EmployeeSize: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div style={fieldGroup}>
+                      <label style={labelStyle}>Profile Picture URL</label>
+                      <input
+                        style={inputBox}
+                        value={oppContactForm.ProfilePictureUrl}
+                        onChange={(e) =>
+                          setOppContactForm({
+                            ...oppContactForm,
+                            ProfilePictureUrl: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
                   {/* ACTIONS */}
