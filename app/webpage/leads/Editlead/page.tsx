@@ -259,19 +259,7 @@ export default function EditLeadPage({
     );
 
   // ----------- styles (kept from your UI) -----------
-  const pageContainer: React.CSSProperties = {
-    padding: "28px 24px",
-    maxWidth: 1200,
-    margin: "auto",
-  };
-  const titleBar: React.CSSProperties = {
-    height: 3,
-    background: "#0b67d1",
-    width: "100%",
-    marginTop: 8,
-    marginBottom: 22,
-    borderRadius: 2,
-  };
+
   const cardStyle: React.CSSProperties = {
     background: "#fff",
     padding: 22,
@@ -280,11 +268,7 @@ export default function EditLeadPage({
     border: "1px solid #e3e6e8",
     boxShadow: "0 0 0 1px rgba(0,0,0,0.01)",
   };
-  const sectionDivider: React.CSSProperties = {
-    height: 1,
-    background: "#e6e6e6",
-    margin: "8px 0 18px 0",
-  };
+
   const labelStyle: React.CSSProperties = {
     fontWeight: 600,
     marginBottom: 6,
@@ -315,11 +299,35 @@ export default function EditLeadPage({
   // ----------- render form populated from `lead` -----------
   return (
     <div style={{ padding: 35, maxWidth: 1100, margin: "auto" }}>
-      <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 10 }}>
+      <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+          // marginTop:70
+        }}>
+       <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 10 }}>
         Edit Lead - {lead.CompanyName}
-      </h2>
-      <hr style={{ marginBottom: 20, border: "1px solid #3a77e3" }} />
-
+       </h2>
+       <button
+        onClick={onBack}
+        style={{
+          background: "#f56c00",
+          color: "white",
+          padding: "8px 16px",
+          borderRadius: 6,
+          border: "none",
+          cursor: "pointer",
+          fontSize: 14,
+          fontWeight: 500,
+        }}
+      >
+        ← Back
+      </button>
+      </div>
+      
+       <hr style={{ marginBottom: 20, border: "1px solid #3a77e3" }} />
+     
       {/* Company Information */}
       <section style={cardStyle}>
         <h3

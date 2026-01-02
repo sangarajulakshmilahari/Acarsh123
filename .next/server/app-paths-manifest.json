@@ -1,7 +1,9 @@
 {
   "/page": "app/page.js",
+  "/api/employees/prospects/route": "app/api/employees/prospects/route.js",
   "/webpage/page": "app/webpage/page.js",
+  "/api/employees/leads/[leadID]/route": "app/api/employees/leads/[leadID]/route.js",
+  "/api/dashboard/route": "app/api/dashboard/route.js",
   "/api/employees/leads/route": "app/api/employees/leads/route.js",
-  "/api/masters/others/route": "app/api/masters/others/route.js",
-  "/api/employees/leads/[leadID]/route": "app/api/employees/leads/[leadID]/route.js"
+  "/api/masters/others/route": "app/api/masters/others/route.js"
 }

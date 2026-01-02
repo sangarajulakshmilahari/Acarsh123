@@ -209,7 +209,7 @@ export default function EmployeeList({
         >
           <thead>
             <tr>
-              <th style={{ ...thStyle, width: 180 }}>Company</th>
+              <th style={{ ...thStyle, width: 90 }}>Company</th>
               <th style={{ ...thStyle, width: 200 }}>Contacts</th>
               <th style={{ ...thStyle, width: 380 }}>Source</th>
               <th style={thStyle}>Status</th>
@@ -235,15 +235,23 @@ export default function EmployeeList({
                   }}
                 >
                   <td style={{ ...tdStyle, verticalAlign: "middle" }}>
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: "inherit",
-                        lineHeight: "inherit",
-                      }}
-                    >
-                      {emp.CompanyName || "—"}
-                    </div>
+                    {emp.CompanyName && emp.CompanyName.trim() !== "" && (
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: "inherit",
+                          lineHeight: "inherit",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          maxWidth: "90px",
+                        }}
+                        title={emp.CompanyName}
+                      >
+                        {emp.CompanyName}
+                      </div>
+                    )}
+
                     {emp.CompanyLocation && (
                       <div
                         style={{

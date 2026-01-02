@@ -162,24 +162,25 @@ export default function LeadDetailsPage({
 
   const [oppContactForm, setOppContactForm] = useState(EMPTY_OPP_CONTACT_FORM);
   const [opportunityStatuses, setOpportunityStatuses] = useState<any[]>([]);
+  const [engagementModels, setEngagementModels] = useState<any[]>([]);
+  const [Services, setServices] = useState<any[]>([]);
 
   useEffect(() => {
     fetch("/api/masters/others")
       .then((res) => res.json())
       .then((data) => {
-        // ✅ ensure we always store an array
-        if (Array.isArray(data)) {
-          setOpportunityStatuses(data);
-        } else if (Array.isArray(data?.data)) {
-          setOpportunityStatuses(data.data);
-        } else {
-          console.error("Unexpected API response:", data);
-          setOpportunityStatuses([]);
+        if (Array.isArray(data?.opportunityStatuses)) {
+          setOpportunityStatuses(data.opportunityStatuses);
         }
-      })
-      .catch((err) => {
-        console.error("Failed to load opportunity statuses", err);
-        setOpportunityStatuses([]);
+
+        // ✅ FIXED
+        if (Array.isArray(data?.engagementModels)) {
+          setEngagementModels(data.engagementModels);
+        }
+
+        if (Array.isArray(data?.services)) {
+          setServices(data.services);
+        }
       });
   }, []);
 
@@ -952,10 +953,9 @@ export default function LeadDetailsPage({
     boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
     border: "1px solid #e6e6e6",
     marginBottom: 16,
-     overflow: "hidden"
+    overflow: "hidden",
   };
 
-  
   const addBtn = {
     backgroundColor: "#3a77e3",
     color: "white",
@@ -1067,16 +1067,13 @@ export default function LeadDetailsPage({
     display: "flex",
     flexDirection: "column",
     gap: 6,
-   width: 250,  
+    width: 250,
   };
 
   const labelStyle: React.CSSProperties = {
     fontSize: 13,
     fontWeight: 600,
   };
-
-
-  
 
   // MAIN RENDER
 
@@ -1329,8 +1326,8 @@ export default function LeadDetailsPage({
         <button style={addBtn} onClick={() => setShowAddReminder(true)}>
           +
         </button>
-       </div>
-       <div style={tableWrap}>
+      </div>
+      <div style={tableWrap}>
         <table
           style={{
             width: "100%",
@@ -1351,7 +1348,6 @@ export default function LeadDetailsPage({
               <tr key={r.ReminderId}>
                 {/* Reminder Date */}
                 <td style={tdStyle}>{formatDateTime(r.ReminderDate)}</td>
-                
 
                 {/* Notes */}
                 <td
@@ -1688,8 +1684,14 @@ export default function LeadDetailsPage({
                   <div style={formRow3}>
                     <div style={fieldGroup}>
                       <label>Service *</label>
-                      <select
-                        style={inputBox}
+                       <select
+                        style={{
+                          ...inputBox,
+                          width: "100%", // ✅ important
+                          boxSizing: "border-box",
+                          maxHeight: 200,
+                          overflowY: "auto",
+                        }}
                         value={opportunityForm.serviceId}
                         onChange={(e) =>
                           setOpportunityForm({
@@ -1699,14 +1701,17 @@ export default function LeadDetailsPage({
                         }
                       >
                         <option value="">-- Select Service --</option>
-                        <option value={1}>TalentMatch</option>
-                        <option value={2}>DevAlley</option>
-                        <option value={3}>Software Engineering</option>
-                        <option value={4}>SAAS / ERP</option>
-                        <option value={5}>Cloud</option>
-                        <option value={6}>BI</option>
-                        <option value={7}>AI</option>
-                        <option value={8}>Data Works</option>
+
+                        {Array.isArray(Services) &&
+                          Services.map((s) => (
+                            <option
+                              key={s.ServiceId}
+                              value={s.ServiceId}
+                              title={s.ServiceName}
+                            >
+                              {s.ServiceName}
+                            </option>
+                          ))}
                       </select>
                     </div>
 
@@ -1757,11 +1762,12 @@ export default function LeadDetailsPage({
                       >
                         <option value="">-- Select Engagement Model --</option>
 
-                        <option value={4}>Competence Center (ODC)</option>
-                        <option value={1}>Managed Resourcing</option>
-                        <option value={2}>Project</option>
-                        <option value={3}>Shared Services</option>
-                        <option value={5}>Other</option>
+                        {Array.isArray(engagementModels) &&
+                          engagementModels.map((e) => (
+                            <option key={e.EngagementId} value={e.EngagementId}>
+                              {e.Engagement_ModelName}
+                            </option>
+                          ))}
                       </select>
                     </div>
                   </div>
@@ -1775,7 +1781,6 @@ export default function LeadDetailsPage({
                         display: "flex",
                         alignItems: "center",
                         gap: 10,
-                    
                       }}
                     >
                       {[
@@ -1959,6 +1964,26 @@ export default function LeadDetailsPage({
                         </div>
                       </div>
                     ))}
+                  </div>
+                  <div
+                    style={{ ...modalFooter, paddingLeft: 530, marginTop: 10 }}
+                  >
+                    <button
+                      style={cancelBtn}
+                      onClick={() => {
+                        setShowAddOpportunity(false);
+                        setMode("add");
+                        setCurrentOpportunityId(null);
+                        resetOpportunityForm();
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    {opportunityView === "OPPORTUNITY" && (
+                      <button style={saveBtn} onClick={handleSaveOpportunity}>
+                        Save Opportunity
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -2466,7 +2491,7 @@ export default function LeadDetailsPage({
             </div>
 
             {/* Footer */}
-            <div style={modalFooter}>
+            {/* <div style={modalFooter}>
               <button
                 style={cancelBtn}
                 onClick={() => {
@@ -2483,7 +2508,7 @@ export default function LeadDetailsPage({
                   Save Opportunity
                 </button>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
       )}

@@ -35,7 +35,7 @@ ORDER BY UserId;
 
 `);
 
-   const Role= await pool.request().query(`
+    const Role = await pool.request().query(`
   SELECT DISTINCT Role
 FROM ContactRoles
 WHERE Role IS NOT NULL
@@ -43,12 +43,33 @@ ORDER BY Role;
 
 `);
 
+const engagementModelsResult = await pool.request().query(`
+  SELECT
+    EngagementId,
+    Engagement_ModelName
+  FROM Engagement_Models
+  ORDER BY EngagementId
+`);
+
+const ServiceResult = await pool.request().query(`
+  SELECT
+    ServiceId,
+    ServiceName
+  FROM Services
+  ORDER BY ServiceId
+`);
+
+
+
+
     return NextResponse.json({
       opportunityStatuses: result.recordset,
       companies: companiesResult.recordset,
       leadSources: leadSourcesResult.recordset,
       ownername: ownernameresult.recordset,
-      Role:Role.recordset
+      Role: Role.recordset,
+      engagementModels: engagementModelsResult.recordset,
+      services: ServiceResult.recordset,
     });
   } catch (error) {
     console.error("Error fetching opportunity statuses:", error);
